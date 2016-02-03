@@ -1,40 +1,40 @@
-import os, shutil, re, time, subprocess, pandas, rasterio, pymongo, sys, fileinput, stat, urllib
+######## PROTOCOLO AUTOMATICO PARA LA CORRECCION RADIOMETRICA DE ESCENAS LANDSAT 7 Y 8 #######
+######                                                                                  ######
+####                        Autor: Diego Garcia Diaz                                      ####
+###                      email: digd.geografo@gmail.com                                    ###
+##                GitHub: https://github.com/LAST-EBD/Protocolo                             ##
+#                        Sevilla 01/01/2016-28/02/2016                                       #
+
+import os, shutil, re, time, subprocess, pandas, rasterio, sys, urllib
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import linregress
-from scipy import ndimage
 from osgeo import gdal, gdalconst
 from pymasker import landsatmasker, confidence
-from datetime import datetime
 
 
 class Landsat(object):
     
      
-    '''Esta clase esta hecha para ser usada como alternativa automatizada al protocolo para tratamiento de imagenes landsat del
-    Laboratorio de SIG y Teledeteccion de la Estacion Biologica de Doñana. La normalizacion consta de 4 metodos: Importacion, Reproyeccion
-    Correccion Radiometrica y Normalizacion. 
+    '''Esta clase esta hecha para corregir radimátricamente escenas Landsat 8, de cara a obtener coeficientes de dsitintos parametros fisico-quimicos
+    en algunos embalses de la cuenca del Guadalquivir.
 
     El unico software necesario es Miramon, que se utiliza por su gestion de Metadatos. Se emplea en la Importacion y en la Correccion Radiometrica
     y se llama mediante archivos bat. Para el resto de procesos se usan GDAL, Rasterio y otras librerias de Python. En general se tratan los rasters
     como arrays, lo que produce un rendimiento en cuanto a la velocidad de procesado bastante elevado. Para la normalizacion se emple tambien una 
     mascara de nubes, que se obtiene empleando Fmask o la banda de calidad de Landsat 8 si fallara Fmask.
 
-    El script requiere una estructura de carpetas en un mismo nivel (/ori, /geo, /rad, /nor y /data). En /data deben de estar los archivos necesarios para
-    llevar a cabo la normalizacion:
+    El script requiere una estructura de carpetas en un mismo nivel (/ori, /rad y /data). En /data deben de estar los archivos necesarios para
+    llevar a cabo el proceso:
 
-        1) Escena de referencia Landsat 7 /20020718l7etm202_34, en formato img + doc + rel + hdr 
-        2) Shape con los limites del Parque Nacional de Donana para calcular la cobertura de nubes sobre Donana
-        3) Modelo Digital del Terreno lo bastante amplio como para englobar cualquier escena
-        4) Mascaras equilibradas y no equilibradas y de tipos de areas pseudo invariantes
+        1) Shape con los limites de los embalses a tratar
+        2) Modelo Digital del Terreno lo bastante amplio como para englobar cualquier escena
 
-    Ademas de estos requisitos, en la carpeta /rad debe de haber 2 archivos kl_l8.rad y kl_l7.rad donde se guardaran temporalmente los valores
-    del objeto oscuro (proceso empleado para la Correccion Radiometrica) y el dtm de la escena. Si la escena es una Landsat 7 debe de tener una carpeta
-    /gapfill donde se encuentren las bandas originales con el bandeado del gapfill corregido y la carpeta gapmask con las mascaras de esos gaps, ya 
-    que se emplearan para una correcta busqueda del objeto oscuro.
+    Ademas de estos requisitos, en la carpeta /rad debe de haber un archivos kl_l8.rad donde se guardaran temporalmente los valores
+    del objeto oscuro (proceso empleado para la Correccion Radiometrica). 
 
-    Al finalizar el proceso tendremos en ori, geo, rad y nor las bandas en formato img + doc + rel + hdr pasadas ya de niveles digitales
-    a reflectancia en superficie normalizada y toda la informacion del proceso almacenada en una base de datos MongoDB'''
+    Al finalizar el proceso tendremos en ori, y rad las bandas (de la 1  la 9 sin la pancromatica) en formato img + doc + rel + hdr pasadas ya de niveles digitales
+    a reflectancia en superficie y toda la informacion del proceso almacenada en una base de datos SQLite'''
+    
     
     def __init__(self, ruta, umbral=50, hist=1000):
         
@@ -66,7 +66,7 @@ class Landsat(object):
             
         self.bat = os.path.join(self.ruta_escena, 'import.bat')
         self.bat2 = os.path.join(self.rad, 'importRad.bat')
-        self.cloud_mask = None #Cambiar a Fmask po defecto
+        self.cloud_mask = None 
         for i in os.listdir(self.ruta_escena):
             if i.endswith('MTL.txt'):
                 mtl = os.path.join(self.ruta_escena,i)
@@ -90,8 +90,6 @@ class Landsat(object):
             s = "http://earthexplorer.usgs.gov/browse/tm/202/34/" + self.escena[:4] + "/" + usgs_id + "_REFL.jpg"
 
         qcklk.write(urllib.urlopen(s).read())
-        
-        #copiamos el mtl a la carpeta gapfill
             
             
     def fmask(self):
@@ -176,7 +174,13 @@ class Landsat(object):
                 dst = src + '.img'
                 os.rename(src, dst)
                 
-    ##########HABRIA QUE HACER UN DOC PARA FMASK EN ORI
+    def fmask_doc(self):
+        
+        '''-----\n
+        Este metodo añade el archivo .doc necesario para que MIramon entienda el raster al tiempo que reconoce que
+        se tratar de una raster categorico con sus correspondientes valores (Sin definir, Agua, Sombra de nubes, Nieve, Nubes).'''
+        
+        
     
     def createI_bat(self):
         
@@ -224,14 +228,7 @@ class Landsat(object):
             print "No se pudo importar la escena"
         #borramos el archivo bat creado para la importacion de la escena, una vez se ha importado esta
         os.remove(self.bat)
-        
-        
-    def modify_rel_I(self):
-        
-        '''-----\n
-        Este metodo escinde las bandas no usadas en la Correccion Radiometrica del rel de la escena importada'''
-        
-        
+               
         
     def get_kl_csw(self):
         
@@ -427,7 +424,53 @@ class Landsat(object):
                     shutil.copy(src, dst)
 
         print 'modificados los metadatos del archivo kl.rad\nProceso finalizado en ' + str(time.time()-t) + ' segundos'
-            
+    
+        
+    def modify_rel_I(self):
+        
+        '''-----\n
+        Este metodo escinde las bandas no usadas en la Correccion Radiometrica del rel de la escena importada'''
+        for i in os.listdir(self.mimport):
+            if i.endswith('.rel'):
+                relf = os.path.join(self.mimport, i)
+        
+        bat = r'C:\Protocolo\data\temp\canvi.bat'
+        open(bat, 'a').close()
+        claves = ['8-PAN', '10-LWIR1', '11-LWIR2', 'QA']
+        rel = open(relf, 'r')
+        s = 'C:\MiraMon\canvirel 1 ' + relf + ' ATTRIBUTE_DATA IndexsNomsCamps 1-CA,2-B,3-G,4-R,5-NIR,6-SWIR1,7-SWIR2,9-CI\n'
+
+        b8 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_8-PAN\n'
+        b10 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_10-LWIR1\n'
+        b11 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_11-LWIR2\n'
+        b12 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_12\n'
+        b13 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_13\n'
+        b14 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_14\n'
+        b15 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_15\n'
+        b16 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_16\n'
+        b17 = 'C:\MiraMon\canvirel 2 ' + relf + ' ATTRIBUTE_DATA NomCamp_17\n'
+
+        lbat = [s, b8, b10, b11, b12, b13, b14, b15, b16, b17]
+
+        lrel = rel.readlines()
+        for i in lrel:
+            for c in claves:
+                if i.startswith('[') and c in i:
+                    lbat.append(os.path.join('C:\MiraMon\canvirel 3 ' + relf + ' ' + i[1:-2] +'\n')) 
+        rel.close()
+
+        f = open(bat, 'w')
+        for linea in lbat:
+            f.write(linea)
+        f.close()
+        
+        a = os.system(bat)
+        a
+        if a == 0:    
+            print 'modificados los metadatos del bat'
+        else:
+            print 'canvirel didn\'t work'
+        
         
     def get_Nodtm(self):
         
@@ -518,7 +561,7 @@ class Landsat(object):
         pr = open(self.bat2, 'w')
         pr.write(batline)
         pr.close()
-
+        
 
     def callR_bat(self):
 
@@ -545,5 +588,6 @@ class Landsat(object):
         self.callI_bat()
         self.get_kl_csw()
         self.get_Nodtm()
+        self.modify_rel_I()
         self.createR_bat()
         self.callR_bat()
