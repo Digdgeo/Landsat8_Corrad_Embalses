@@ -2,8 +2,9 @@
 ######                                                                              ######
 ####                        Autor: Diego Garcia Diaz                                  ####
 ###                      email: digd.geografo@gmail.com                                ###
-##                GitHub: https://github.com/LAST-EBD/Protocolo                         ##
+##            GitHub: https://github.com/Digdgeo/Landsat8_Corrad_Embalses               ##
 #                        Sevilla 01/01/2016-28/02/2016                                   #
+
 
 import os, shutil, re, time, subprocess, pandas, rasterio, sys, urllib
 import numpy as np
