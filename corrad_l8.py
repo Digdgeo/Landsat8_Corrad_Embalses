@@ -1,9 +1,9 @@
-######## PROTOCOLO AUTOMATICO PARA LA CORRECCION RADIOMETRICA DE ESCENAS LANDSAT 7 Y 8 #######
-######                                                                                  ######
-####                        Autor: Diego Garcia Diaz                                      ####
-###                      email: digd.geografo@gmail.com                                    ###
-##                GitHub: https://github.com/LAST-EBD/Protocolo                             ##
-#                        Sevilla 01/01/2016-28/02/2016                                       #
+######## PROTOCOLO AUTOMATICO PARA LA CORRECCION RADIOMETRICA DE ESCENAS LANDSAT 8 #######
+######                                                                              ######
+####                        Autor: Diego Garcia Diaz                                  ####
+###                      email: digd.geografo@gmail.com                                ###
+##                GitHub: https://github.com/LAST-EBD/Protocolo                         ##
+#                        Sevilla 01/01/2016-28/02/2016                                   #
 
 import os, shutil, re, time, subprocess, pandas, rasterio, sys, urllib
 import numpy as np
