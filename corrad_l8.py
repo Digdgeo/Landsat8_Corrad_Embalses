@@ -1,3 +1,8 @@
+
+# coding: utf-8
+
+# In[6]:
+
 ######## PROTOCOLO AUTOMATICO PARA LA CORRECCION RADIOMETRICA DE ESCENAS LANDSAT 8 #######
 ######                                                                              ######
 ####                        Autor: Diego Garcia Diaz                                  ####
@@ -43,7 +48,7 @@ class Landsat(object):
         '''Instanciamos la clase con la escena que vayamos a procesar, hay que introducir la ruta a la escena en ori
         y de esa ruta el constructor obtiene el resto de rutas que necesita para ejecutarse. Los parametros marcados por defecto son el 
         umbral para la mascara de nubes Fmask y el numero de elementos a incluir en el histograma de las bandas'''
-                
+          
         self.ruta_escena = ruta
         self.ori = os.path.split(ruta)[0]
         self.escena = os.path.split(ruta)[1]
@@ -58,7 +63,7 @@ class Landsat(object):
         if 'l8oli' in self.escena:
             self.sat = 'L8'
         else:
-            print ' No reconozco el satelite'
+            print 'no reconozco el satelite'
             
         if self.sat == 'L8':
             self.mimport = os.path.join(self.ruta_escena, 'miramon_import')
@@ -102,6 +107,7 @@ class Landsat(object):
         os.chdir(self.ruta_escena)
             
         print 'comenzando Fmask'
+        
         try:
             
             print 'comenzando Fmask'
@@ -181,8 +187,47 @@ class Landsat(object):
         Este metodo añade el archivo .doc necesario para que MIramon entienda el raster al tiempo que reconoce que
         se tratar de una raster categorico con sus correspondientes valores (Sin definir, Agua, Sombra de nubes, Nieve, Nubes).'''
         
+    def get_hdr(self):
         
+        '''-----\n
+        Este metodo genera los hdr para cada banda, de cara a poder trabajar posteriormente con ellas en GDAL, ENVI u otro software'''
+        
+        dgeo = {'B1': '_r_b1.img', 'B2': '_r_b2.img', 'B3': '_r_b3.img', 'B4': '_r_b4.img', 'B5': '_r_b5.img',  \
+                   'B6': '_r_b6.img', 'B7': '_r_b7.img', 'B8': '_r_b8.img', 'B9': '_r_b9.img',  \
+                            'B10': '_r_b10.img', 'B11': '_r_b11.img', 'BQA': '_r_bqa.img'}
+        
+        for i in os.listdir(self.ruta_escena):
+            
+            if i.endswith('.TIF'):
+                
+                if len(i) == 28:
+                    banda = i[-6:-4]
+                elif len(i) == 29:
+                    banda = i[-7:-4]
+                else:
+                    banda = i[-13:-4]
+                    
+                print banda
+                
+                if banda in dgeo.keys():
+                
+                    in_rs = os.path.join(self.ruta_escena, i)
+                    out_rs = os.path.join(self.ruta_escena, self.escena + dgeo[banda])
+                    string = 'gdal_translate -of ENVI {} {}'.format(in_rs, out_rs)
+                    print string
+                    os.system(string)
+
+        #ahora vamos a borrar los .img y xml que se han generado junto con los 
     
+    def clean_ori(self):
+
+        for i in os.listdir(self.ruta_escena):
+
+            if i.endswith('.img') and not 'Fmask' in i or i.endswith('.xml'):
+                rs_dl = os.path.join(self.ruta_escena, i)
+                print rs_dl
+                os.remove(rs_dl)
+
     def createI_bat(self):
         
         '''-----\n
@@ -399,8 +444,7 @@ class Landsat(object):
                 if i.endswith('l8.rad'):
 
                     archivo = os.path.join(self.rad, i)
-                    dictio = {6: lista_kl[0], 7: lista_kl[1], 8: lista_kl[2], 9: lista_kl[3], \
-                              10: lista_kl[4], 11: lista_kl[5], 12: lista_kl[6], 14: lista_kl[7]}
+                    dictio = {6: lista_kl[0], 7: lista_kl[1], 8: lista_kl[2], 9: lista_kl[3],                               10: lista_kl[4], 11: lista_kl[5], 12: lista_kl[6], 14: lista_kl[7]}
 
                     rad = open(archivo, 'r')
                     rad.seek(0)
@@ -426,11 +470,30 @@ class Landsat(object):
 
         print 'modificados los metadatos del archivo kl.rad\nProceso finalizado en ' + str(time.time()-t) + ' segundos'
     
+    def move_hdr(self):
+
+        '''-----\n
+        Este metodo mueve los hdr generados anteriormente a la carpeta de la escena en rad, que es donde seran necesarios para
+        trabajar con GDAL'''
+
+        path_escena_rad = os.path.join(self.rad, self.escena)
+
+        for i in os.listdir(self.ruta_escena):
+
+            if i.endswith('.hdr') and not 'Fmask' in i:
+
+                bandar = i.replace('_b', '_r_b')
+                hdr = os.path.join(self.ruta_escena, i)
+                dst = os.path.join(path_escena_rad, bandar)
+                os.rename(hdr, dst)
+                print hdr, 'movido a rad'
+
         
     def modify_rel_I(self):
         
         '''-----\n
         Este metodo escinde las bandas no usadas en la Correccion Radiometrica del rel de la escena importada'''
+
         for i in os.listdir(self.mimport):
             if i.endswith('.rel'):
                 relf = os.path.join(self.mimport, i)
@@ -581,10 +644,79 @@ class Landsat(object):
         os.remove(self.bat2)
         
         
+    def rename_rad(self):
+        
+        '''-----\n
+        Este metodo hace el rename de las imagenes corregidas radiometricamente a la nomenclatura "yyyymmddsatpath_row_banda"'''
+        
+        drad = {'B1': '_r_b1', 'B2': '_r_b2', 'B3': '_r_b3', 'B4': '_r_b4', 'B5': '_r_b5', 'B6': '_r_b6', 'B7': '_r_b7', 'B9': '_r_b9'}
+        
+        path_escena_rad = os.path.join(self.rad, self.escena)
+        
+        for i in os.listdir(path_escena_rad):
+            
+            if i.endswith('.doc') or i.endswith('.img'):
+                
+                print i
+                
+                if len(i) == 33:
+                    banda = i[-11:-9]
+                elif len(i) == 34:
+                    banda = i[-12:-10]
+                elif len(i) == 35:
+                    banda = i[-13:-11]
+                else:
+                    banda = i[-15:-13]
+
+                if banda in drad.keys():  
+
+                    print banda
+                    #print 'diccionario: ', i
+                    in_rs = os.path.join(path_escena_rad, i)
+                    print in_rs
+                    out_rs = os.path.join(path_escena_rad, self.escena + drad[banda] + i[-4:])
+                    print out_rs
+                #os.rename(in_rs, out_rs)
+        
+        
+    def correct_sup_inf(self):
+        
+        '''-----\n
+        Este metodo soluciona el problema de los pixeles con alta y baja reflectividad, llevando los bajos a valor 0 
+        y los altos a 100. La salida sigue siendo en float32 (reales entre 0.0 y 100.0) con el nodata en 255'''
+        
+        path_escena_rad = os.path.join(self.rad, self.escena)
+        for i in os.listdir(path_escena_rad):
+       
+            if i.endswith('.img'):
+                
+                banda = os.path.join(path_escena_rad, i)
+                outfile = os.path.join(path_escena_rad, 'crt_' + i)
+                
+                with rasterio.drivers():
+                    with rasterio.open(banda) as src:
+                        rs = src.read()
+                        mini = (rs == rs.min())
+                        min_msk = (rs>rs.min()) & (rs<=0)
+                        max_msk = (rs>=100)
+                        val_msk = (rs > 0) & (rs <= 100)
+                        rs[min_msk] = 0
+                        rs[max_msk] = 1
+                        rs[val_msk] = rs//100.0
+                        rs[mini] = 255 #el valor que tendra el nodata
+                        
+                        profile = src.meta
+                        profile.update(dtype=rasterio.float32)
+
+                        with rasterio.open(outfile, 'w', **profile) as dst:
+                            dst.write(rs.astype(rasterio.float32))
+        
     def run(self):
         
         self.fmask()
         self.fmask_legend()
+        self.get_hdr()
+        self.clean_ori()
         self.createI_bat()
         self.callI_bat()
         self.get_kl_csw()
@@ -592,3 +724,7 @@ class Landsat(object):
         self.modify_rel_I()
         self.createR_bat()
         self.callR_bat()
+        self.rename_rad()
+        self.move_hdr()
+        #self.correct_sup_inf()
+
