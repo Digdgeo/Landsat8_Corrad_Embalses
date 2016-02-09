@@ -213,7 +213,7 @@ class Landsat(object):
                 
                     in_rs = os.path.join(self.ruta_escena, i)
                     out_rs = os.path.join(self.ruta_escena, self.escena + dgeo[banda])
-                    string = 'gdal_translate -of ENVI {} {}'.format(in_rs, out_rs)
+                    string = 'gdal_translate -of ENVI --config GDAL_CACHEMAX 8000 --config GDAL_NUM_THREADS ALL_CPUS {} {}'.format(in_rs, out_rs)
                     print string
                     os.system(string)
 
@@ -431,7 +431,7 @@ class Landsat(object):
                 path_rad = os.path.join(self.rad, self.escena)
                 if not os.path.exists(path_rad):
                     os.makedirs(path_rad)
-                name = os.path.join(path_rad, self.escena + '_gr_'+ banda.lower() + '.png')
+                name = os.path.join(path_rad, self.escena + '_r_'+ banda.lower() + '.png')
                 plt.savefig(name)
 
         plt.close('all')
@@ -444,7 +444,8 @@ class Landsat(object):
                 if i.endswith('l8.rad'):
 
                     archivo = os.path.join(self.rad, i)
-                    dictio = {6: lista_kl[0], 7: lista_kl[1], 8: lista_kl[2], 9: lista_kl[3],                               10: lista_kl[4], 11: lista_kl[5], 12: lista_kl[6], 14: lista_kl[7]}
+                    dictio = {6: lista_kl[0], 7: lista_kl[1], 8: lista_kl[2], 9: lista_kl[3],\
+                    10: lista_kl[4], 11: lista_kl[5], 12: lista_kl[6], 14: lista_kl[7]}
 
                     rad = open(archivo, 'r')
                     rad.seek(0)
@@ -482,9 +483,9 @@ class Landsat(object):
 
             if i.endswith('.hdr') and not 'Fmask' in i:
 
-                bandar = i.replace('_b', '_r_b')
+                #bandar = i.replace('_b', '_r_b') Ya tiene la nomenclatura correcta, borrar linea
                 hdr = os.path.join(self.ruta_escena, i)
-                dst = os.path.join(path_escena_rad, bandar)
+                dst = os.path.join(path_escena_rad, i)
                 os.rename(hdr, dst)
                 print hdr, 'movido a rad'
 
@@ -673,12 +674,45 @@ class Landsat(object):
                     print banda
                     #print 'diccionario: ', i
                     in_rs = os.path.join(path_escena_rad, i)
-                    print in_rs
                     out_rs = os.path.join(path_escena_rad, self.escena + drad[banda] + i[-4:])
-                    print out_rs
-                #os.rename(in_rs, out_rs)
+                    os.rename(in_rs, out_rs)
+
+            elif i.endswith('.rel'):
+
+                rel = os.path.join(path_escena_rad, i)
+                dst = os.path.join(path_escena_rad, self.escena + '_BI.rel')
+                os.rename(rel, dst)
+    
+    def modify_hdr_rad(self): 
         
+        '''-----\n
+        Este metodo edita los hdr para que tengan el valor correcto (FLOAT) para poder ser entendidos por GDAL.
+        Hay que ver si hay que establecer primero el valor como No Data'''
+                
+        path_escena_rad = os.path.join(self.rad, self.escena)
+        for i in os.listdir(path_escena_rad):
         
+            if i.endswith('.hdr'):
+
+                archivo = os.path.join(path_escena_rad, i)
+                hdr = open(archivo, 'r')
+                hdr.seek(0)
+                lineas = hdr.readlines()
+                for l in range(len(lineas)):
+                    if l == 8:
+                        lineas[l] = 'data type = 4\n'
+                lineas.append('data ignore value = -3.40282347e+38') 
+                 
+                hdr.close()
+
+                f = open(archivo, 'w')
+                for linea in lineas:
+                    f.write(linea)
+
+                f.close()
+                print 'modificados los metadatos de ', i
+    
+
     def correct_sup_inf(self):
         
         '''-----\n
@@ -696,23 +730,94 @@ class Landsat(object):
                 with rasterio.drivers():
                     with rasterio.open(banda) as src:
                         rs = src.read()
+                        rs = rs/100
+                        #rs = np.round(rs.astype(np.float32),4)
                         mini = (rs == rs.min())
                         min_msk = (rs>rs.min()) & (rs<=0)
                         max_msk = (rs>=100)
-                        val_msk = (rs > 0) & (rs <= 100)
-                        rs[min_msk] = 0
+
+                        rs[min_msk] = 0.0001
                         rs[max_msk] = 1
-                        rs[val_msk] = rs//100.0
-                        rs[mini] = 255 #el valor que tendra el nodata
-                        
+
+                        rs[mini] = 0 #el valor que tendra el nodata
+
                         profile = src.meta
                         profile.update(dtype=rasterio.float32)
 
                         with rasterio.open(outfile, 'w', **profile) as dst:
                             dst.write(rs.astype(rasterio.float32))
+
+                            
+    def modify_rel_R(self):
+
+        '''-----\n
+        Este metodo modifica el rel de rad para que tenga los nombres de las bandas con la nueva nomenclatura. Tambien pasa el NoData a 0 y los
+        valores minimos y maximos de cada banda a 0 y 1'''
+
+        path_rad = os.path.join(self.rad, self.escena)
+
+        equiv = {'b1': '1-CA', 'b2': '2-B', 'b3': '3-G', 'b4': '4-R', 'b5': '5-NIR', 'b6': '6-SWIR1', 'b7': '7-SWIR2', 'b9': '9-CI'}
+        drad = {}
+        drad_min = {}
+        drad_max = {}
+        l = []
+
+        for i in os.listdir(path_rad):
+            
+            if i.endswith('.rel'):
+                rel = os.path.join(path_rad, i)
+            elif i.endswith('.img') and not i.startswith('crt_'):
+                banda = str(i[-6:-4])
+                print banda, equiv[banda]
+                drad[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' NomFitxer ' + i
+                drad_min[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' min ' + '0'
+                drad_max[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' max ' + '1'
+                
+        for i in sorted(drad.values()):
+            l.append(i + '\n')
+        for i in sorted(drad_min.values()):
+            l.append(i + '\n')
+        for i in sorted(drad_max.values()):
+            l.append(i + '\n')
+            
+        l.append('C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA NODATA 0')
+            
+        bat = open(r'C:\embalses\data\temp\rename_rad.bat', 'w')
+        bat.seek(0)
+        for i in l:
+            #print i
+            bat.write(i)
+        bat.close()
+
+        os.system(r'C:\embalses\data\temp\rename_rad.bat')
+
+    def clean_rad(self):
         
+        '''-----\n
+        Este metodo borra los archivos originales saldos del corrad y renombra el resultado de pasarlo a valores entre 0 y 1'''
+        
+        path_rad = os.path.join(self.rad, self.escena)
+        
+        for i in os.listdir(path_rad):
+
+            if i.endswith('.img') or i.endswith('.hdr') or i.endswith('.xml'):
+
+                if not i.startswith('crt_'):
+
+                    arc = os.path.join(path_rad, i)
+                    print arc
+                    os.remove(arc)
+
+                else:
+                    
+                    arc = os.path.join(path_rad, i)
+                    dst = os.path.join(path_rad, i[4:])
+                    print dst
+                    os.rename(arc, dst)
+
+
     def run(self):
-        
+
         self.fmask()
         self.fmask_legend()
         self.get_hdr()
@@ -726,5 +831,10 @@ class Landsat(object):
         self.callR_bat()
         self.rename_rad()
         self.move_hdr()
-        #self.correct_sup_inf()
+        self.modify_hdr_rad()
+        self.correct_sup_inf()
+        self.modify_rel_R()
+        self.clean_rad()
 
+#clean rad
+###HAY QUE CAMBIAR LAS CLAVES DEL REL CON LOS NUEVOS NOMBRES DE LAS BANDAS
