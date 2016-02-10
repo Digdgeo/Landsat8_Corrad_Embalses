@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[6]:
-
 ######## PROTOCOLO AUTOMATICO PARA LA CORRECCION RADIOMETRICA DE ESCENAS LANDSAT 8 #######
 ######                                                                              ######
 ####                        Autor: Diego Garcia Diaz                                  ####
@@ -10,6 +5,7 @@
 ##            GitHub: https://github.com/Digdgeo/Landsat8_Corrad_Embalses               ##
 #                        Sevilla 01/01/2016-28/02/2016                                   #
 
+# coding: utf-8
 
 import os, shutil, re, time, subprocess, pandas, rasterio, sys, urllib
 import numpy as np
@@ -21,7 +17,7 @@ from pymasker import landsatmasker, confidence
 class Landsat(object):
     
      
-    '''Esta clase esta hecha para corregir radimátricamente escenas Landsat 8, de cara a obtener coeficientes de dsitintos parametros fisico-quimicos
+    '''Esta clase esta hecha para corregir radiometricamente escenas Landsat 8, de cara a obtener coeficientes de dsitintos parametros fisico-quimicos
     en algunos embalses de la cuenca del Guadalquivir.
 
     El unico software necesario es Miramon, que se utiliza por su gestion de Metadatos. Se emplea en la Importacion y en la Correccion Radiometrica
@@ -102,7 +98,7 @@ class Landsat(object):
         
         '''-----\n
         Este metodo genera el algortimo Fmask que sera el que vendra por defecto en la capa de calidad de
-        las landsat a partir del otoño de 2015'''
+        las landsat a partir del otono de 2015'''
         
         os.chdir(self.ruta_escena)
             
@@ -140,7 +136,7 @@ class Landsat(object):
     def fmask_legend(self):
         
         '''-----\n
-        Este metodo añade las lineas necesarias para que Envi reconozca que es una raster categorico con sus
+        Este metodo anade las lineas necesarias para que Envi reconozca que es una raster categorico con sus
         correspondientes valores (Sin definir, Agua, Sombra de nubes, Nieve, Nubes). Se aplicara tanto a la fmask 
         generada en ori, como a la reproyectada en nor'''
         
@@ -184,7 +180,7 @@ class Landsat(object):
     def fmask_doc(self):
         
         '''-----\n
-        Este metodo añade el archivo .doc necesario para que MIramon entienda el raster al tiempo que reconoce que
+        Este metodo anade el archivo .doc necesario para que MIramon entienda el raster al tiempo que reconoce que
         se tratar de una raster categorico con sus correspondientes valores (Sin definir, Agua, Sombra de nubes, Nieve, Nubes).'''
         
     def get_hdr(self):
@@ -415,7 +411,7 @@ class Landsat(object):
                             data2 = data[((data != 0) & ((maskwater==1) | (((Fmask==0)) & (Hillshade<(np.percentile(Hillshade, 20))))))]
                             print 'data2: ', data2.min(), data2.max(), data2.size
 
-                lista_kl.append(data2.min())#añadimos el valor minimo (podria ser perceniles) a la lista de kl
+                lista_kl.append(data2.min())#anadimos el valor minimo (podria ser perceniles) a la lista de kl
                 lista = sorted(data2.tolist())
                 print 'lista: ', lista[:10]
                 #nmask = (data2<lista[1000])#probar a coger los x valores mas bajos, a ver hasta cual aguanta bien
@@ -770,7 +766,7 @@ class Landsat(object):
                 banda = str(i[-6:-4])
                 print banda, equiv[banda]
                 drad[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' NomFitxer ' + i
-                drad_min[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' min ' + '0'
+                drad_min[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' min ' + '0.0001'
                 drad_max[banda] = 'C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA:' + equiv[banda] +  ' max ' + '1'
                 
         for i in sorted(drad.values()):
@@ -780,7 +776,8 @@ class Landsat(object):
         for i in sorted(drad_max.values()):
             l.append(i + '\n')
             
-        l.append('C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA NODATA 0')
+        l.append('C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA NODATA 0\n')
+        l.append('C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA unitats Refls')  
             
         bat = open(r'C:\embalses\data\temp\rename_rad.bat', 'w')
         bat.seek(0)
@@ -800,19 +797,18 @@ class Landsat(object):
         
         for i in os.listdir(path_rad):
 
-            if i.endswith('.img') or i.endswith('.hdr') or i.endswith('.xml'):
+            if i.endswith('.img') | i.endswith('.hdr') | i.endswith('.xml'):
+                print 'img o hdr: ', i
 
                 if not i.startswith('crt_'):
 
                     arc = os.path.join(path_rad, i)
-                    print arc
                     os.remove(arc)
 
-                else:
+                elif i.startswith('crt_'):
                     
                     arc = os.path.join(path_rad, i)
                     dst = os.path.join(path_rad, i[4:])
-                    print dst
                     os.rename(arc, dst)
 
 
@@ -835,6 +831,3 @@ class Landsat(object):
         self.correct_sup_inf()
         self.modify_rel_R()
         self.clean_rad()
-
-#clean rad
-###HAY QUE CAMBIAR LAS CLAVES DEL REL CON LOS NUEVOS NOMBRES DE LAS BANDAS
