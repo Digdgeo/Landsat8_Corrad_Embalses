@@ -798,7 +798,6 @@ class Landsat(object):
         for i in os.listdir(path_rad):
 
             if i.endswith('.img') | i.endswith('.hdr') | i.endswith('.xml'):
-                print 'img o hdr: ', i
 
                 if not i.startswith('crt_'):
 
