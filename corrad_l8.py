@@ -797,18 +797,16 @@ class Landsat(object):
         
         for i in os.listdir(path_rad):
 
-            if i.endswith('.img') | i.endswith('.hdr') | i.endswith('.xml'):
+            if re.search('^[0-9].*img$', i) or re.search('^[0-9].*hdr$', i) or re.search('^[0-9].*doc$', i):
 
-                if not i.startswith('crt_'):
+                arc = os.path.join(path_rad, i)
+                os.remove(arc)
 
-                    arc = os.path.join(path_rad, i)
-                    os.remove(arc)
-
-                elif i.startswith('crt_'):
-                    
-                    arc = os.path.join(path_rad, i)
-                    dst = os.path.join(path_rad, i[4:])
-                    os.rename(arc, dst)
+            elif re.search('^crt_', i):
+                
+                arc = os.path.join(path_rad, i)
+                dst = os.path.join(path_rad, i[4:])
+                os.rename(arc, dst)
 
 
     def run(self):
