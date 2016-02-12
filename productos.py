@@ -69,3 +69,61 @@ class Product(object):
 
             with rasterio.open(outfile, 'w', **profile) as dst:
                 dst.write(ndvi.astype(rasterio.float32)) 
+
+    def ntu_bus2009(self):
+        
+        outfile = os.path.join(self.productos, 'ntu_bus2009.img')
+        print outfile
+        
+        if self.sat == 'L8':
+                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+                
+            ntu = 1.195 + 14.45*RED
+            
+            profile = red.meta
+            profile.update(dtype=rasterio.float32)
+
+            with rasterio.open(outfile, 'w', **profile) as dst:
+                dst.write(ntu.astype(rasterio.float32)) 
+                
+    def ntu_chen(self):
+        
+        outfile = os.path.join(self.productos, 'ntu_chen.img')
+        print outfile
+        
+        if self.sat == 'L8':
+                
+            with rasterio.open(self.b3) as green:
+                GREEN = green.read()
+                
+            ntu = -439.52 * GREEN + 22.913
+            
+            profile = green.meta
+            profile.update(dtype=rasterio.float32)
+
+            with rasterio.open(outfile, 'w', **profile) as dst:
+                dst.write(ntu.astype(rasterio.float32)) 
+    
+    def wti(self):
+        
+        outfile = os.path.join(self.productos, 'wti.img')
+        print outfile
+        
+        if self.sat == 'L8':
+                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+                
+            with rasterio.open(self.b5) as nir:
+                NIR = nir.read()
+                
+            wti = 0.91 * RED + 0.43 * NIR
+            
+            profile = red.meta
+            profile.update(dtype=rasterio.float32)
+
+            with rasterio.open(outfile, 'w', **profile) as dst:
+                dst.write(wti.astype(rasterio.float32)) 
+        
