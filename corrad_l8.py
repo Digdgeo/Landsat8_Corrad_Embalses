@@ -730,7 +730,7 @@ class Landsat(object):
                         #rs = np.round(rs.astype(np.float32),4)
                         mini = (rs == rs.min())
                         min_msk = (rs>rs.min()) & (rs<=0)
-                        max_msk = (rs>=100)
+                        max_msk = (rs>=1)
 
                         rs[min_msk] = 0.0001
                         rs[max_msk] = 1

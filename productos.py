@@ -18,6 +18,7 @@ class Product(object):
     def __init__(self, ruta_rad):
         
         self.ruta_escena = ruta_rad
+        self.escena = os.path.split(self.ruta_escena)[1]
         self.rad = os.path.split(self.ruta_escena)[0]
         self.raiz = os.path.split(self.rad)[0]
         self.productos = os.path.join(self.raiz, 'productos')
@@ -50,7 +51,7 @@ class Product(object):
                     
     def ndvi(self):
         
-        outfile = os.path.join(self.productos, 'ndvi.img')
+        outfile = os.path.join(self.productos, self.escena + '_ndvi2.img')
         print outfile
         
         if self.sat == 'L8':
@@ -61,8 +62,10 @@ class Product(object):
                 
             with rasterio.open(self.b4) as red:
                 RED = red.read()
-                
-            ndvi = NIR-RED / NIR+RED
+            
+            num = NIR-RED
+            den = NIR+RED
+            ndvi = num/den
             
             profile = nir.meta
             profile.update(dtype=rasterio.float32)
