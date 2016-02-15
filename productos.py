@@ -51,14 +51,13 @@ class Product(object):
                     
     def ndvi(self):
         
-        outfile = os.path.join(self.productos, self.escena + '_ndvi2.img')
+        outfile = os.path.join(self.productos, self.escena + '_ndvi.img')
         print outfile
         
         if self.sat == 'L8':
             
             with rasterio.open(self.b5) as nir:
                 NIR = nir.read()
-                print NIR, NIR.min(), NIR.max()
                 
             with rasterio.open(self.b4) as red:
                 RED = red.read()
@@ -72,6 +71,54 @@ class Product(object):
 
             with rasterio.open(outfile, 'w', **profile) as dst:
                 dst.write(ndvi.astype(rasterio.float32)) 
+
+    def ndwi(self):
+
+        outfile = os.path.join(self.productos, self.escena + '_ndwi.img')
+        print outfile
+        
+        if self.sat == 'L8':
+            
+            with rasterio.open(self.b5) as nir:
+                NIR = nir.read()
+                
+            with rasterio.open(self.b3) as green:
+                GREEN = green.read()
+            
+            num = GREEN-NIR
+            den = GREEN+NIR
+            ndvi = num/den
+            
+            profile = nir.meta
+            profile.update(dtype=rasterio.float32)
+
+            with rasterio.open(outfile, 'w', **profile) as dst:
+                dst.write(ndvi.astype(rasterio.float32))
+
+
+    def mndwi(self):
+
+        outfile = os.path.join(self.productos, self.escena + '_mndwi.img')
+        print outfile
+        
+        if self.sat == 'L8':
+            
+            with rasterio.open(self.b6) as swir1:
+                SWIR1 = swir1.read()
+                
+            with rasterio.open(self.b3) as green:
+                GREEN = green.read()
+            
+            num = GREEN-SWIR1
+            den = GREEN+SWIR1
+            ndvi = num/den
+            
+            profile = swir1.meta
+            profile.update(dtype=rasterio.float32)
+
+            with rasterio.open(outfile, 'w', **profile) as dst:
+                dst.write(ndvi.astype(rasterio.float32)) 
+
 
     def ntu_bus2009(self):
         

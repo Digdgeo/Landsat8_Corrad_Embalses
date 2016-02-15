@@ -116,15 +116,22 @@ class Landsat(object):
                 print 'Mascara de nubes (Fmask) generada en ' + str(t-time.time()) + ' segundos'
                 
             else:
-                
-                print 'comenzando BQA'
-                for i in os.listdir(self.ruta_escena):
-                    if i.endswith('BQA.TIF'):
-                        masker = landsatmasker(os.path.join(self.ruta_escena, i))
-                        mask = masker.getcloudmask(confidence.high, cirrus = True, cumulative = True)
-                        masker.savetif(mask, os.path.join(self.ruta_escena, self.escena + '_Fmask.TIF'))
-                self.cloud_mask = 'BQA'
-                print 'Mascara de nubes (BQA) generada en ' + str(t-time.time()) + ' segundos'
+                t = time.time()
+                print 'comenzando Fmask NoTIRS'
+                a = os.system('C:/Cloud_Mask/Fmask_3_2')
+                a
+                if a == 0:
+                    self.cloud_mask = 'Fmask NoTIRS'
+                    print 'Mascara de nubes (Fmask NoTIRS) generada en ' + str(t-time.time()) + ' segundos'
+                else:
+                    print 'comenzando BQA'
+                    for i in os.listdir(self.ruta_escena):
+                        if i.endswith('BQA.TIF'):
+                            masker = landsatmasker(os.path.join(self.ruta_escena, i))
+                            mask = masker.getcloudmask(confidence.high, cirrus = True, cumulative = True)
+                            masker.savetif(mask, os.path.join(self.ruta_escena, self.escena + '_Fmask.TIF'))
+                    self.cloud_mask = 'BQA'
+                    print 'Mascara de nubes (BQA) generada en ' + str(t-time.time()) + ' segundos'
                                        
         except Exception as e:
             
