@@ -734,15 +734,9 @@ class Landsat(object):
                     with rasterio.open(banda) as src:
                         rs = src.read()
                         rs = rs/100
-                        #rs = np.round(rs.astype(np.float32),4)
-                        mini = (rs == rs.min())
-                        min_msk = (rs>rs.min()) & (rs<=0)
-                        max_msk = (rs>=1)
-
-                        rs[min_msk] = 0.0001
-                        rs[max_msk] = 1
-
-                        rs[mini] = 0 #el valor que tendra el nodata
+                        rs = np.where(((rs>rs.min()) & (rs<=0)), 0.0001, rs)
+                        rs = np.where(rs>1, 1, rs)
+                        rs = np.where(rs==rs.min(), 0, rs)
 
                         profile = src.meta
                         profile.update(dtype=rasterio.float32)
@@ -814,6 +808,9 @@ class Landsat(object):
                 arc = os.path.join(path_rad, i)
                 dst = os.path.join(path_rad, i[4:])
                 os.rename(arc, dst)
+
+    def sr_sac(self):
+        pass
 
 
     def run(self):
