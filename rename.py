@@ -31,4 +31,4 @@ def rename(ruta):
             
             
 if __name__ == "__main__":
-    rename(r'C:\Protocolo\ori')
+    rename(r'C:\Embalses\ori')
