@@ -325,7 +325,7 @@ class Landsat(object):
             if i.endswith('full.img'):
                 dtm = os.path.join(self.data, i)
 
-        cmd = ["gdalwarp", "-dstnodata" , "0" , "-cutline", "-crop_to_cutline"]
+        cmd = ["gdalwarp", "-dstnodata" , "0" , "-cutline", "-crop_to_cutline", "-of", "ENVI"]
         cmd.append(dtm)
         cmd.append(dtm_escena)
         cmd.insert(4, shape)
@@ -545,8 +545,8 @@ class Landsat(object):
         '''-----\n
         Este metodo genera un dtm con valor 0  con la extension de la escena que estemos tratando'''
         
-        shape = r'C:\Protocolo\data\temp\poly_escena.shp'
-        self.dtm = r'C:\Protocolo\data\temp\Nodtm.img' 
+        shape = r'C:\embalses\data\temp\poly_escena.shp'
+        self.dtm = r'C:\embalses\data\temp\Nodtm.img' 
 
         cmd = ["gdal_rasterize -tr 30 30 -ot Byte -of ENVI -burn 0 -l poly_escena", shape, self.dtm]
 
@@ -568,7 +568,7 @@ class Landsat(object):
         shutil.copy(b1, dst)
         
         #Ahora vamos a modificar el doc para que tenga los valores adecuados
-        archivo = r'C:\Protocolo\data\temp\Nodtm.doc'
+        archivo = r'C:\embalses\data\temp\Nodtm.doc'
 
         doc = open(archivo, 'r')
         doc.seek(0)
@@ -600,6 +600,56 @@ class Landsat(object):
 
         f.close()
         print 'modificados los metadatos de ', i
+
+
+    def get_dtm(self):
+
+        '''------\n
+        Este metodo genera el doc necesario para poder usar el dtm de la escena en el corrad'''
+
+        #primero vamos a leer el dtm de la escena para obtener su minimo y maximo
+        with rasterio.open(os.path.join(self.data, os.path.join('temp', 'dtm_escena.img'))) as src:
+            dtm = src.read()
+            minimo = dtm.min()
+            maximo = dtm.max()
+
+        #Ahora copiamos un doc de ori
+        for i in os.listdir(self.mimport):
+            if i.endswith('B1-CA_00.doc'):
+                src = os.path.join(self.mimport, i)
+                dst = os.path.join(self.data, os.path.join('temp', 'dtm_escena.doc'))
+                shutil.copy(src, dst)
+
+        #Ahora editamos el doc para que tenga los valores correctos
+        archivo = r'C:\embalses\data\temp\dtm_escena.doc'
+
+        doc = open(archivo, 'r')
+        doc.seek(0)
+        lineas = doc.readlines()
+
+        for l, e in enumerate(lineas):
+
+            if e.startswith('file title'):
+                lineas[l] = 'file title  : \n'
+            elif e.startswith('data type'):
+                lineas[l] = 'data type   : integer\n'
+            elif e.startswith('value units'):
+                lineas[l] = 'value units : m\n'
+            elif e.startswith('min. value  :'):
+                lineas[l] = 'min. value  : {}\n'.format(minimo)  
+            elif e.startswith('max. value  :'):
+                lineas[l] = 'max. value  : {}\n'.format(maximo)
+            else: continue
+
+        doc.close()
+
+        f = open(archivo, 'w')
+        for linea in lineas:
+            f.write(linea)
+
+        f.close()
+        print 'modificados los metadatos de ', i
+
         
     def createR_bat(self):
         
@@ -620,8 +670,8 @@ class Landsat(object):
             if i.endswith('B1-CA_00.img'):
                 banda1 = os.path.join(self.mimport, i)
             else: continue
-
-        lista = [corrad, num1, banda1, path_escena_rad,  self.dtm, kl, string]
+        dtm_ = r'C:\embalses\data\temp\dtm_escena.img'
+        lista = [corrad, num1, banda1, path_escena_rad,  dtm_, kl, string]
         print lista
 
         batline = (" ").join(lista)
@@ -823,6 +873,7 @@ class Landsat(object):
         self.callI_bat()
         self.get_kl_csw()
         self.get_Nodtm()
+        self.get_dtm()
         self.modify_rel_I()
         self.createR_bat()
         self.callR_bat()

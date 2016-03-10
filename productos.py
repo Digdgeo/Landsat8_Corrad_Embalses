@@ -210,7 +210,7 @@ class Product(object):
 
         if self.rec == "NO":
 
-            shape = os.path.join(self.data, 'Piedras.shp')
+            shape = os.path.join(self.data, 'Embalses.shp')
             crop = "-crop_to_cutline"
             
             #usamos Gdalwarp para realizar las mascaras, llamandolo desde el modulo subprocess
@@ -219,7 +219,7 @@ class Product(object):
             if not os.path.exists(path_masks):
                 os.makedirs(path_masks)
 
-            salida = os.path.join(path_masks, 'Piedras_chla_1.TIF')
+            salida = os.path.join(path_masks, 'Embalses_chla_1.TIF')
             cmd.insert(4, shape)
             cmd.insert(5, crop)
             cmd.insert(6, outfile)
@@ -256,7 +256,7 @@ class Product(object):
 
         if self.rec == "NO":
 
-            shape = os.path.join(self.data, 'Piedras.shp')
+            shape = os.path.join(self.data, 'Embalses.shp')
             crop = "-crop_to_cutline"
             
             #usamos Gdalwarp para realizar las mascaras, llamandolo desde el modulo subprocess
@@ -265,7 +265,7 @@ class Product(object):
             if not os.path.exists(path_masks):
                 os.makedirs(path_masks)
 
-            salida = os.path.join(path_masks, 'Piedras_chla_2.TIF')
+            salida = os.path.join(path_masks, 'Embalses_chla_2.TIF')
             cmd.insert(4, shape)
             cmd.insert(5, crop)
             cmd.insert(6, outfile)
@@ -302,7 +302,7 @@ class Product(object):
 
         if self.rec == "NO":
 
-            shape = os.path.join(self.data, 'Piedras.shp')
+            shape = os.path.join(self.data, 'Embalses.shp')
             crop = "-crop_to_cutline"
             
             #usamos Gdalwarp para realizar las mascaras, llamandolo desde el modulo subprocess
@@ -311,7 +311,7 @@ class Product(object):
             if not os.path.exists(path_masks):
                 os.makedirs(path_masks)
 
-            salida = os.path.join(path_masks, 'Piedras_chla_3.TIF')
+            salida = os.path.join(path_masks, 'Embalses_chla_3.TIF')
             cmd.insert(4, shape)
             cmd.insert(5, crop)
             cmd.insert(6, outfile)
@@ -348,7 +348,7 @@ class Product(object):
 
         if self.rec == "NO":
 
-            shape = os.path.join(self.data, 'Piedras.shp')
+            shape = os.path.join(self.data, 'Embalses.shp')
             crop = "-crop_to_cutline"
             
             #usamos Gdalwarp para realizar las mascaras, llamandolo desde el modulo subprocess
@@ -357,7 +357,7 @@ class Product(object):
             if not os.path.exists(path_masks):
                 os.makedirs(path_masks)
 
-            salida = os.path.join(path_masks, 'Piedras_chla_4.TIF')
+            salida = os.path.join(path_masks, 'Embalses_chla_4.TIF')
             cmd.insert(4, shape)
             cmd.insert(5, crop)
             cmd.insert(6, outfile)
@@ -401,7 +401,7 @@ class Product(object):
 
         if self.rec == "NO":
 
-            shape = os.path.join(self.data, 'Piedras.shp')
+            shape = os.path.join(self.data, 'Embalses.shp')
             crop = "-crop_to_cutline"
             
             #usamos Gdalwarp para realizar las mascaras, llamandolo desde el modulo subprocess
@@ -410,7 +410,7 @@ class Product(object):
             if not os.path.exists(path_masks):
                 os.makedirs(path_masks)
 
-            salida = os.path.join(path_masks, 'Piedras_chla_5.TIF')
+            salida = os.path.join(path_masks, 'Embalses_chla_5.TIF')
             cmd.insert(4, shape)
             cmd.insert(5, crop)
             cmd.insert(6, outfile)
