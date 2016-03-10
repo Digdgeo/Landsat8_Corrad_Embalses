@@ -85,7 +85,8 @@ class Landsat(object):
         self.quicklook = os.path.join(self.ruta_escena, usgs_id + '.jpg')
         qcklk = open(self.quicklook,'wb')
         if self.sat == 'L8':
-            s = "http://earthexplorer.usgs.gov/browse/landsat_8/" + self.escena[:4] + "/202/034/" + usgs_id + ".jpg"
+            s = "http://earthexplorer.usgs.gov/browse/landsat_8/" + self.escena[:4] + "/" + self.escena[-6:-3] + "/0" + self.escena[-2:] + "/" + usgs_id + ".jpg"
+            print s
         elif self.sat == 'L7':
             s = "http://earthexplorer.usgs.gov/browse/etm/202/34/" + self.escena[:4] + "/" + usgs_id + "_REFL.jpg"
         elif self.sat == 'L5':
@@ -402,7 +403,7 @@ class Landsat(object):
                 bandraster = gdal.Open(raster)
                 data = bandraster.ReadAsArray()
                 #anadimos la distincion entre Fmask y BQA
-                if self.cloud_mask == 'Fmask':
+                if self.cloud_mask == 'Fmask' or self.cloud_mask == 'Fmask NoTIRS':
                     print 'usando Fmask'
                     data2 = data[((Fmask==1) | (((Fmask==0)) & (Hillshade<(np.percentile(Hillshade, 20)))))]
 
@@ -502,7 +503,7 @@ class Landsat(object):
             if i.endswith('.rel'):
                 relf = os.path.join(self.mimport, i)
         
-        bat = r'C:\Protocolo\data\temp\canvi.bat'
+        bat = r'C:\embalses\data\temp\canvi.bat'
         open(bat, 'a').close()
         claves = ['8-PAN', '10-LWIR1', '11-LWIR2', 'QA']
         rel = open(relf, 'r')
