@@ -18,7 +18,7 @@ class Landsat(object):
     
      
     '''Esta clase esta hecha para corregir radiometricamente escenas Landsat 8, de cara a obtener coeficientes de dsitintos parametros fisico-quimicos
-    en algunos embalses de la cuenca del Guadalquivir.
+    en algunos Embalses de la cuenca del Guadalquivir.
 
     El unico software necesario es Miramon, que se utiliza por su gestion de Metadatos. Se emplea en la Importacion y en la Correccion Radiometrica
     y se llama mediante archivos bat. Para el resto de procesos se usan GDAL, Rasterio y otras librerias de Python. En general se tratan los rasters
@@ -28,7 +28,7 @@ class Landsat(object):
     El script requiere una estructura de carpetas en un mismo nivel (/ori, /rad y /data). En /data deben de estar los archivos necesarios para
     llevar a cabo el proceso:
 
-        1) Shape con los limites de los embalses a tratar
+        1) Shape con los limites de los Embalses a tratar
         2) Modelo Digital del Terreno lo bastante amplio como para englobar cualquier escena
 
     Ademas de estos requisitos, en la carpeta /rad debe de haber un archivos kl_l8.rad donde se guardaran temporalmente los valores
@@ -503,7 +503,7 @@ class Landsat(object):
             if i.endswith('.rel'):
                 relf = os.path.join(self.mimport, i)
         
-        bat = r'C:\embalses\data\temp\canvi.bat'
+        bat = r'C:\Embalses\data\temp\canvi.bat'
         open(bat, 'a').close()
         claves = ['8-PAN', '10-LWIR1', '11-LWIR2', 'QA']
         rel = open(relf, 'r')
@@ -546,8 +546,8 @@ class Landsat(object):
         '''-----\n
         Este metodo genera un dtm con valor 0  con la extension de la escena que estemos tratando'''
         
-        shape = r'C:\embalses\data\temp\poly_escena.shp'
-        self.dtm = r'C:\embalses\data\temp\Nodtm.img' 
+        shape = r'C:\Embalses\data\temp\poly_escena.shp'
+        self.dtm = r'C:\Embalses\data\temp\Nodtm.img' 
 
         cmd = ["gdal_rasterize -tr 30 30 -ot Byte -of ENVI -burn 0 -l poly_escena", shape, self.dtm]
 
@@ -569,7 +569,7 @@ class Landsat(object):
         shutil.copy(b1, dst)
         
         #Ahora vamos a modificar el doc para que tenga los valores adecuados
-        archivo = r'C:\embalses\data\temp\Nodtm.doc'
+        archivo = r'C:\Embalses\data\temp\Nodtm.doc'
 
         doc = open(archivo, 'r')
         doc.seek(0)
@@ -622,7 +622,7 @@ class Landsat(object):
                 shutil.copy(src, dst)
 
         #Ahora editamos el doc para que tenga los valores correctos
-        archivo = r'C:\embalses\data\temp\dtm_escena.doc'
+        archivo = r'C:\Embalses\data\temp\dtm_escena.doc'
 
         doc = open(archivo, 'r')
         doc.seek(0)
@@ -671,8 +671,8 @@ class Landsat(object):
             if i.endswith('B1-CA_00.img'):
                 banda1 = os.path.join(self.mimport, i)
             else: continue
-        dtm_ = r'C:\embalses\data\temp\dtm_escena.img'
-        lista = [corrad, num1, banda1, path_escena_rad,  dtm_, kl, string]
+        #dtm_ = r'C:\Embalses\data\temp\dtm_escena.img'
+        lista = [corrad, num1, banda1, path_escena_rad,  self.dtm, kl, string]
         print lista
 
         batline = (" ").join(lista)
@@ -831,14 +831,14 @@ class Landsat(object):
         l.append('C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA NODATA 0\n')
         l.append('C:\Miramon\canvirel 1 ' + rel + ' ATTRIBUTE_DATA unitats Refls')  
             
-        bat = open(r'C:\embalses\data\temp\rename_rad.bat', 'w')
+        bat = open(r'C:\Embalses\data\temp\rename_rad.bat', 'w')
         bat.seek(0)
         for i in l:
             #print i
             bat.write(i)
         bat.close()
 
-        os.system(r'C:\embalses\data\temp\rename_rad.bat')
+        os.system(r'C:\Embalses\data\temp\rename_rad.bat')
 
     def clean_rad(self):
         

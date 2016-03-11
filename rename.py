@@ -27,7 +27,14 @@ def rename(ruta):
                 day = '0' + day
 
             outname = os.path.join(ruta, year +  month  + day + sats[sat] + path + "_" + row)
-            os.rename(escena, outname)
+
+            try:
+                
+                os.rename(escena, outname)
+                print 'Escena', escena, 'renombrada a', outname
+                
+            except Exception as e:
+                print e
             
             
 if __name__ == "__main__":
