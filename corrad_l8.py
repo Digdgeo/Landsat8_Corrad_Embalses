@@ -3,7 +3,7 @@
 ####                        Autor: Diego Garcia Diaz                                  ####
 ###                      email: digd.geografo@gmail.com                                ###
 ##            GitHub: https://github.com/Digdgeo/Landsat8_Corrad_Embalses               ##
-#                        Sevilla 01/01/2016-28/02/2016                                   #
+#                        Sevilla 01/01/2016-31/03/2016                                   #
 
 # coding: utf-8
 
@@ -38,7 +38,7 @@ class Landsat(object):
     a reflectancia en superficie y toda la informacion del proceso almacenada en una base de datos SQLite'''
     
     
-    def __init__(self, ruta, umbral=50, hist=1000):
+    def __init__(self, ruta, umbral=50, hist=1000, dtm = 'plano'):
         
         
         '''Instanciamos la clase con la escena que vayamos a procesar, hay que introducir la ruta a la escena en ori
@@ -54,7 +54,11 @@ class Landsat(object):
         self.data = os.path.join(self.raiz, 'data')
         self.umbral = umbral
         self.hist = hist
-        self.dtm = None 
+        if dtm == 'plano':
+            self.dtm = os.path.join(self.data, 'temp\dtm_escena.img')
+        else:
+            self.dtm = os.path.join(self.data, 'temp\dtm_escena.img')
+
         #metemos una variable que almacene el tipo de satelite
         if 'l8oli' in self.escena:
             self.sat = 'L8'
@@ -80,12 +84,15 @@ class Landsat(object):
                         cloud_scene = float(i[-6:-1])
                     elif 'PROCESSING_SOFTWARE_VERSION' in i:
                         lpgs = i.split('=')[1][2:-2]
+                    elif 'UTM_ZONE' in i:
+                        self.zone = int(i.split('=')[1][1:-1]) #vamos a distinguir si son escenas del uso 30 o 29 para ver que dtm usaremos luego
         arc.close()
         
         self.quicklook = os.path.join(self.ruta_escena, usgs_id + '.jpg')
         qcklk = open(self.quicklook,'wb')
         if self.sat == 'L8':
             s = "http://earthexplorer.usgs.gov/browse/landsat_8/" + self.escena[:4] + "/" + self.escena[-6:-3] + "/0" + self.escena[-2:] + "/" + usgs_id + ".jpg"
+            #s = "http://earthexplorer.usgs.gov/browse/landsat_8/" + self.escena[:4] + "/200/0" + self.escena[-2:] + "/" + usgs_id + ".jpg"
             print s
         elif self.sat == 'L7':
             s = "http://earthexplorer.usgs.gov/browse/etm/202/34/" + self.escena[:4] + "/" + usgs_id + "_REFL.jpg"
@@ -288,8 +295,8 @@ class Landsat(object):
         a las escenas que no se puedan realizar con Fmask habria que revisarles el valor de kl.
         Tambien distingue Landsar 7 de Landsat 8, aplicandole tambien a las Landsat 7 la mascara de Gaps'''
     
-    #Empezamos borrando los archivos de temp, la idea de esto es que al acabar una escena queden disponibles
-    #por si se quiere comprobar algo. Ya aqui se borran antes de comenzar la siguiente
+        #Empezamos borrando los archivos de temp, la idea de esto es que al acabar una escena queden disponibles
+        #por si se quiere comprobar algo. Ya aqui se borran antes de comenzar la siguiente
         t = time.time()
 
         temp = os.path.join(self.data, 'temp')
@@ -321,15 +328,28 @@ class Landsat(object):
 
         #ya tenemos el dtm recortado guardado en data/temp, ahora vamos a generar el hillshade.  
         #Para ello primero hay que recortar el dtm con el shape recien obtenido con la extension de la escena
+        #vamos a usar la variable 'zone' para usar el dtm reproyectado al huso 30 o 29
         dtm_escena = os.path.join(temp, 'dtm_escena.img')
-        for i in os.listdir(self.data):
-            if i.endswith('full.img'):
-                dtm = os.path.join(self.data, i)
+        if self.zone == 29:
+
+            for i in os.listdir(self.data):
+                if i.endswith('29c.img'):
+                    dtm = os.path.join(self.data, i)
+                    print dtm
+
+        else:
+
+            for i in os.listdir(self.data):
+                if i.endswith('30c.img'):
+                    dtm = os.path.join(self.data, i)
+                    print dtm
+
 
         cmd = ["gdalwarp", "-dstnodata" , "0" , "-cutline", "-crop_to_cutline", "-of", "ENVI"]
+        #cmd = ["gdalwarp", "-cutline", "-crop_to_cutline", "-of", "ENVI"] #PROBAR A DEJAR EL DTM ORIGINAL -9999 A VER SI SALE MEJOR
         cmd.append(dtm)
         cmd.append(dtm_escena)
-        cmd.insert(4, shape)
+        cmd.insert(4, shape) #seria el 4/2 con/sin el dst nodata
         proc = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         stdout,stderr=proc.communicate()
         exit_code=proc.wait()
@@ -672,7 +692,7 @@ class Landsat(object):
                 banda1 = os.path.join(self.mimport, i)
             else: continue
         #dtm_ = r'C:\Embalses\data\temp\dtm_escena.img'
-        lista = [corrad, num1, banda1, path_escena_rad,  self.dtm, kl, string]
+        lista = [corrad, num1, banda1, path_escena_rad, self.dtm, kl, string]
         print lista
 
         batline = (" ").join(lista)

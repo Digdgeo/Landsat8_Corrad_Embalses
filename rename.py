@@ -1,9 +1,21 @@
+######## PROTOCOLO AUTOMATICO PARA LA CORRECCION RADIOMETRICA DE ESCENAS LANDSAT 8 #######
+######                                                                              ######
+####                        Autor: Diego Garcia Diaz                                  ####
+###                      email: digd.geografo@gmail.com                                ###
+##            GitHub: https://github.com/Digdgeo/Landsat8_Corrad_Embalses               ##
+#                        Sevilla 01/01/2016-31/03/2016                                   #
+
 import os, time, re
 
 def rename(ruta):
 
-    '''Este metodo hace el rename de las escenas en ori, desde su nomenclatura en formato USGS al formato usado
-    en el LAST'''
+    '''Esta funcion hace el rename de todas las escenas en una carpeta (por defecto 'C:\Embalses\ori'), desde su nomenclatura en formato USGS 
+    al formato YearMonthDaySatPath_Row. Funciona para Landsat5-8. Si hubiera algun problema como posibles escenas duplicadas, 
+    imprime la escena que da error y pasa a la siguiente. Las escenas que va renombrando correctamente son impresas en tambien en pantalla
+
+                    LC82020342014224LGN00 --->   20140812l8oli202_34
+
+    '''
 
     sats = {'LC8': 'l8oli', 'LE7': 'l7etm', 'LT5': 'l5tm'}
     fecha=time.strftime("%d-%m-%Y")
