@@ -38,7 +38,7 @@ class Landsat(object):
     a reflectancia en superficie y toda la informacion del proceso almacenada en una base de datos SQLite'''
     
     
-    def __init__(self, ruta, umbral=50, hist=1000, dtm = 'plano'):
+    def __init__(self, ruta, umbral=50, hist=1000, dtm = 'real'):
         
         
         '''Instanciamos la clase con la escena que vayamos a procesar, hay que introducir la ruta a la escena en ori
@@ -55,7 +55,7 @@ class Landsat(object):
         self.umbral = umbral
         self.hist = hist
         if dtm == 'plano':
-            self.dtm = os.path.join(self.data, 'temp\dtm_escena.img')
+            self.dtm = os.path.join(self.data, 'temp\Nodtm.img')
         else:
             self.dtm = os.path.join(self.data, 'temp\dtm_escena.img')
 
@@ -567,9 +567,9 @@ class Landsat(object):
         Este metodo genera un dtm con valor 0  con la extension de la escena que estemos tratando'''
         
         shape = r'C:\Embalses\data\temp\poly_escena.shp'
-        self.dtm = r'C:\Embalses\data\temp\Nodtm.img' 
+        nodtm = r'C:\Embalses\data\temp\Nodtm.img' 
 
-        cmd = ["gdal_rasterize -tr 30 30 -ot Byte -of ENVI -burn 0 -l poly_escena", shape, self.dtm]
+        cmd = ["gdal_rasterize -tr 30 30 -ot Byte -of ENVI -burn 0 -l poly_escena", shape, nodtm]
 
 
         s = (" ").join(cmd)
@@ -585,7 +585,7 @@ class Landsat(object):
             if i.endswith('B1-CA_00.doc'):
                 b1 = os.path.join(self.mimport, i)
         
-        dst = self.dtm[:-4] + '.doc'
+        dst = nodtm[:-4] + '.doc'
         shutil.copy(b1, dst)
         
         #Ahora vamos a modificar el doc para que tenga los valores adecuados
@@ -692,6 +692,7 @@ class Landsat(object):
                 banda1 = os.path.join(self.mimport, i)
             else: continue
         #dtm_ = r'C:\Embalses\data\temp\dtm_escena.img'
+        print 'el dtm usado es ', self.dtm
         lista = [corrad, num1, banda1, path_escena_rad, self.dtm, kl, string]
         print lista
 
