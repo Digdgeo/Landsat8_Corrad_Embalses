@@ -28,9 +28,13 @@ class Product(object):
         self.rec = rec
         if 'l8oli' in self.ruta_escena:
             self.sat = 'L8'
-        else:
+        elif 'S2A' in i:
             self.sat =  'S2A'
+        else:
+            print 'No identifico el satelite'
+
         if self.sat == 'L8':
+
             for i in os.listdir(self.ruta_escena):
                 if re.search('img$', i):
                     
@@ -52,7 +56,40 @@ class Product(object):
                         self.b7 = os.path.join(self.ruta_escena, i)
                     elif banda == 'b9':
                         self.b9 = os.path.join(self.ruta_escena, i)
+        
+        elif self.sat == 'S2A':
+
+            for i in os.listdir(self.ruta_escena):
+                if re.search('img$', i):
                     
+                    banda = i[-6:-4]
+
+                    if banda == 'B01':
+                        self.b1 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B02':
+                        self.b2 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B03':
+                        self.b3 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B04':
+                        self.b4 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B05':
+                        self.b5 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B06':
+                        self.b6 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B07':
+                        self.b7 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B08':
+                        self.b8 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B8A':
+                        self.b8a = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B09':
+                        self.b9 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B10':
+                        self.b10 = os.path.join(self.ruta_escena, i)
+                    elif banda == 'B11':
+                        self.b11 = os.path.join(self.ruta_escena, i)
+
+        
     def ndvi(self):
         
         outfile = os.path.join(self.productos, self.escena + '_ndvi.img')
@@ -124,24 +161,30 @@ class Product(object):
                 dst.write(ndvi.astype(rasterio.float32)) 
 
 
-    def ntu_bus2009(self):
-        
-        outfile = os.path.join(self.productos, 'ntu_bus2009.img')
-        print outfile
-        
-        if self.sat == 'L8':
-                
-            with rasterio.open(self.b4) as red:
-                RED = red.read()
-                
-            ntu = 1.195 + 14.45*RED
-            
-            profile = red.meta
-            profile.update(dtype=rasterio.float32)
+    
 
-            with rasterio.open(outfile, 'w', **profile) as dst:
-                dst.write(ntu.astype(rasterio.float32)) 
+#TURBIDEZ
+class Turbidez(Product):
+
+
+    def ntu_bus2009(self):
+            
+            outfile = os.path.join(self.productos, 'ntu_bus2009.img')
+            print outfile
+            
+            if self.sat == 'L8':
+                    
+                with rasterio.open(self.b4) as red:
+                    RED = red.read()
+                    
+                ntu = 1.195 + 14.45*RED
                 
+                profile = red.meta
+                profile.update(dtype=rasterio.float32)
+
+                with rasterio.open(outfile, 'w', **profile) as dst:
+                    dst.write(ntu.astype(rasterio.float32)) 
+                    
     def ntu_chen(self):
         
         outfile = os.path.join(self.productos, 'ntu_chen.img')
@@ -181,7 +224,36 @@ class Product(object):
             with rasterio.open(outfile, 'w', **profile) as dst:
                 dst.write(wti.astype(rasterio.float32)) 
 
+    
+#CLOROFILA
 
+
+
+class Clorofila(Product):
+
+    def gNdvi(self):
+
+        outfile = os.path.join(self.productos, self.escena + '_gNdvi.img')
+        print outfile
+        
+        if self.sat == 'L8':
+            
+            with rasterio.open(self.b5) as nir:
+                NIR = nir.read()
+                
+            with rasterio.open(self.b3) as green:
+                GREEN = green.read()
+            
+            num = NIR-GREEN
+            den = NIR+GREEN
+            ndvi = num/den
+            
+            profile = nir.meta
+            profile.update(dtype=rasterio.float32)
+
+            with rasterio.open(outfile, 'w', **profile) as dst:
+                dst.write(ndvi.astype(rasterio.float32)) 
+    
 
     def chla_Theologu_1(self):
 
@@ -399,7 +471,9 @@ class Product(object):
             with rasterio.open(outfile, 'w', **profile) as dst:
                 dst.write(chla.astype(rasterio.float32)) 
 
-        if self.rec == "NO":
+        if self.rec != "NO":
+
+            print "comenzando el recorte con los embalses"
 
             shape = os.path.join(self.data, 'Embalses.shp')
             crop = "-crop_to_cutline"
@@ -422,9 +496,3 @@ class Product(object):
 
             if exit_code: 
                 raise RuntimeError(stderr)
-
-
-
-
-
-        

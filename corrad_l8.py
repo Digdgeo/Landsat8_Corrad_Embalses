@@ -7,7 +7,7 @@
 
 # coding: utf-8
 
-import os, shutil, re, time, subprocess, pandas, rasterio, sys, urllib
+import os, shutil, re, time, subprocess, pandas, rasterio, sys, urllib, sqlite3
 import numpy as np
 import matplotlib.pyplot as plt
 from osgeo import gdal, gdalconst
@@ -38,7 +38,7 @@ class Landsat(object):
     a reflectancia en superficie y toda la informacion del proceso almacenada en una base de datos SQLite'''
     
     
-    def __init__(self, ruta, umbral=50, hist=1000, dtm = 'real'):
+    def __init__(self, ruta, umbral=50, hist=1000, dtm = 'plano'):
         
         
         '''Instanciamos la clase con la escena que vayamos a procesar, hay que introducir la ruta a la escena en ori
@@ -100,6 +100,40 @@ class Landsat(object):
             s = "http://earthexplorer.usgs.gov/browse/tm/202/34/" + self.escena[:4] + "/" + usgs_id + "_REFL.jpg"
 
         qcklk.write(urllib.urlopen(s).read())
+
+
+        #Creamos la base de datos y la primera tabla Escenas
+        conn = sqlite3.connect(r'C:\Embalses\data\embalsesDB.db')
+        print "Opened database successfully"
+
+        conn.execute('''CREATE TABLE IF NOT EXISTS Escenas
+                       (ID Text PRIMARY KEY NOT NULL,
+                       Process Date NOT NULL
+                       )''');
+
+        print "Table Escenas created successfully"
+
+        conn.execute('''CREATE TABLE IF NOT EXISTS Kl
+                       (id INTEGER PRIMARY KEY NOT NULL,
+                       id_escena TEXT,
+                       B1 INTEGER,
+                       B2 INTEGER,
+                       B3 INTEGER,
+                       B4 INTEGER,
+                       B5 INTEGER,
+                       B6 INTEGER,
+                       B7 INTEGER,
+                       B9 INTEGER
+                       )''');
+
+        print "Table Kl created successfully"
+
+        conn.execute('''CREATE TABLE IF NOT EXISTS Escenas
+                       (ID Text PRIMARY KEY NOT NULL,
+                       Process Date NOT NULL
+                       )''');
+
+        conn.close()
             
             
     def fmask(self):
