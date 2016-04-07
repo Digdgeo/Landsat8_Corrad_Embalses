@@ -24,7 +24,7 @@ def rename(path):
                     LC82020342014224LGN00 --->   20140812l8oli202_34
 
     '''
-
+    print 'rename called'
     sats = {'LC8': 'l8oli', 'LE7': 'l7etm', 'LT5': 'l5tm'}
     fecha=time.strftime("%d-%m-%Y")
     raiz = os.path.split(path)[0]
@@ -61,9 +61,11 @@ def untar(ruta):
     en formato yearmonthdaysatpath_row que crea llamando a la funcion rename(), una vez descomprida la escena llama a la clase Landsat()
     y ejecuta el Protocolo para la correccion radiometrica'''
     
+    print 'empezando la tarea'
+    
     for i in os.listdir(ruta):
 
-        if i.endswith('tar.bz'):
+        if i.endswith('tar.gz') or i.endswith('.tar'):
             
             try:
 

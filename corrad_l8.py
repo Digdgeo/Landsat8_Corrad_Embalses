@@ -12,7 +12,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from osgeo import gdal, gdalconst
 from pymasker import landsatmasker, confidence
-
+from datetime import datetime, date
+from IPython.display import Image
+from IPython.display import display
 
 class Landsat(object):
     
@@ -29,7 +31,9 @@ class Landsat(object):
     llevar a cabo el proceso:
 
         1) Shape con los limites de los Embalses a tratar
-        2) Modelo Digital del Terreno lo bastante amplio como para englobar cualquier escena
+        2) Shape de puntos con los lugares de los que hay datos de campo, para hacer un "extract_values_to_point"
+        3) Modelo Digital del Terreno lo bastante amplio como para englobar cualquier escena *
+        *) Al tener escenas en huso 29 y huso 30 se ha optado por tener 2 dtms (de la peninsula completa) uno en 29 y otro en 30, automaticamente se elige el adecuado
 
     Ademas de estos requisitos, en la carpeta /rad debe de haber un archivos kl_l8.rad donde se guardaran temporalmente los valores
     del objeto oscuro (proceso empleado para la Correccion Radiometrica). 
@@ -90,96 +94,144 @@ class Landsat(object):
         
         self.quicklook = os.path.join(self.ruta_escena, usgs_id + '.jpg')
         qcklk = open(self.quicklook,'wb')
+
         if self.sat == 'L8':
             s = "http://earthexplorer.usgs.gov/browse/landsat_8/" + self.escena[:4] + "/" + self.escena[-6:-3] + "/0" + self.escena[-2:] + "/" + usgs_id + ".jpg"
             #s = "http://earthexplorer.usgs.gov/browse/landsat_8/" + self.escena[:4] + "/200/0" + self.escena[-2:] + "/" + usgs_id + ".jpg"
-            print s
         elif self.sat == 'L7':
             s = "http://earthexplorer.usgs.gov/browse/etm/202/34/" + self.escena[:4] + "/" + usgs_id + "_REFL.jpg"
         elif self.sat == 'L5':
             s = "http://earthexplorer.usgs.gov/browse/tm/202/34/" + self.escena[:4] + "/" + usgs_id + "_REFL.jpg"
 
         qcklk.write(urllib.urlopen(s).read())
+        
+        display(Image(url=s, width=500))
 
-
+        #BASE DE DATOS SQLITE!
+        #
+        #
         #Creamos la base de datos y la primera tabla Escenas
-        conn = sqlite3.connect(r'C:\Embalses\data\embalsesDB.db')
+        conn = sqlite3.connect(r'C:\Embalses\data\Pr_embalsesDB.db')
+        cur = conn.cursor()
         print "Opened database successfully"
 
-        conn.execute('''CREATE TABLE IF NOT EXISTS Escenas
-                       (ID Text PRIMARY KEY NOT NULL,
-                       Process Date NOT NULL
-                       )''');
+        conn.execute('''CREATE TABLE IF NOT EXISTS 'Escenas' (
+                        'Escena'    TEXT NOT NULL PRIMARY KEY UNIQUE,
+                        'Sat' TEXT,
+                        'Path'  INTEGER,
+                        'Row'   INTEGER,
+                        'Fecha_Escena'  DATE,
+                        'Fecha_Procesado'   DATETIME
+                        )''');
 
         print "Table Escenas created successfully"
 
-        conn.execute('''CREATE TABLE IF NOT EXISTS Kl
-                       (id INTEGER PRIMARY KEY NOT NULL,
-                       id_escena TEXT,
-                       B1 INTEGER,
-                       B2 INTEGER,
-                       B3 INTEGER,
-                       B4 INTEGER,
-                       B5 INTEGER,
-                       B6 INTEGER,
-                       B7 INTEGER,
-                       B9 INTEGER
-                       )''');
+        conn.execute('''CREATE TABLE IF NOT EXISTS 'Kl' (
+                        'id_escena' TEXT NOT NULL UNIQUE,
+                        'B1'    INTEGER,
+                        'B2'    INTEGER,
+                        'B3'    INTEGER,
+                        'B4'    INTEGER,
+                        'B5'    INTEGER,
+                        'B6'    INTEGER,
+                        'B7'    INTEGER,
+                        'B9'    INTEGER,
+                        PRIMARY KEY(id_escena)
+                        )''');
 
         print "Table Kl created successfully"
 
-        conn.execute('''CREATE TABLE IF NOT EXISTS Escenas
-                       (ID Text PRIMARY KEY NOT NULL,
-                       Process Date NOT NULL
-                       )''');
+        conn.execute('''CREATE TABLE IF NOT EXISTS 'Puntos-Escenas' (
+                        'id'    INTEGER PRIMARY KEY AUTOINCREMENT,
+                        'id_escenas'    TEXT,
+                        'id_puntos' INTEGER
+                        )''');
 
+        print "Table Puntos-Escena created successfully"
+
+        conn.execute('''CREATE TABLE IF NOT EXISTS 'Puntos' (
+                        'id'    INTEGER PRIMARY KEY AUTOINCREMENT,
+                        'Coordenada_X'    DECIMAL,
+                        'Coordenada_Y' DECIMAL
+                        'Nombre' TEXT
+                        )''');
+
+        print "Table Puntos created successfully"
+
+        conn.execute('''CREATE TABLE  IF NOT EXISTS  'Indices' (
+                        'id'    INTEGER PRIMARY KEY AUTOINCREMENT,
+                        'Indice'    TEXT
+                        )''');
+
+        print "Table Indices created successfully"
+
+        conn.execute('''CREATE TABLE  IF NOT EXISTS 'Puntos-Indices' (
+                        'id_indices'    INTEGER PRIMARY KEY AUTOINCREMENT,
+                        'id_puntos_escenas'    INTEGER,
+                        'Valor' INTEGER
+                        )''');
+
+        print "Table Puntos-Indices created successfully"
+
+        try:
+
+            cur.execute('''INSERT OR REPLACE INTO Escenas (Escena, Sat, Path, Row, Fecha_Escena, Fecha_Procesado) 
+                VALUES ( ?, ?, ?, ?, ?, ?)''', (self.escena, self.sat, int(self.escena[-6:-3]), int(self.escena[-2:]), \
+                    date(int(self.escena[:4]), int(self.escena[4:6]), int(self.escena[6:8])), datetime.now() ));
+
+ 
+        except Exception as e: 
+            
+            print e
+
+        conn.commit()
         conn.close()
             
             
     def fmask(self):
-        
-        '''-----\n
-        Este metodo genera el algortimo Fmask que sera el que vendra por defecto en la capa de calidad de
-        las landsat a partir del otono de 2015'''
-        
-        os.chdir(self.ruta_escena)
             
-        print 'comenzando Fmask'
-        
-        try:
+            '''-----\n
+            Este metodo genera el algortimo Fmask que sera el que vendra por defecto en la capa de calidad de
+            las landsat a partir del otono de 2015'''
             
-            print 'comenzando Fmask'
-            t = time.time()
-                #El valor (el ultimo valor, que es el % de confianza sobre el pixel (nubes)) se pedira desde la interfaz que se haga. 
-            a = os.system('C:/Cloud_Mask/Fmask 1 1 0 {}'.format(self.umbral))
-            a
-            if a == 0:
-                self.cloud_mask = 'Fmask'
-                print 'Mascara de nubes (Fmask) generada en ' + str(t-time.time()) + ' segundos'
+            os.chdir(self.ruta_escena)
                 
-            else:
+            print 'comenzando Fmask'
+            
+            try:
+                
+                print 'comenzando Fmask'
                 t = time.time()
-                print 'comenzando Fmask NoTIRS'
-                a = os.system('C:/Cloud_Mask/Fmask_3_2')
+                    #El valor (el ultimo valor, que es el % de confianza sobre el pixel (nubes)) se pedira desde la interfaz que se haga. 
+                a = os.system('C:/Cloud_Mask/Fmask 1 1 0 {}'.format(self.umbral))
                 a
                 if a == 0:
-                    self.cloud_mask = 'Fmask NoTIRS'
-                    print 'Mascara de nubes (Fmask NoTIRS) generada en ' + str(t-time.time()) + ' segundos'
+                    self.cloud_mask = 'Fmask'
+                    print 'Mascara de nubes (Fmask) generada en ' + str(t-time.time()) + ' segundos'
+                    
                 else:
-                    print 'comenzando BQA'
-                    for i in os.listdir(self.ruta_escena):
-                        if i.endswith('BQA.TIF'):
-                            masker = landsatmasker(os.path.join(self.ruta_escena, i))
-                            mask = masker.getcloudmask(confidence.high, cirrus = True, cumulative = True)
-                            masker.savetif(mask, os.path.join(self.ruta_escena, self.escena + '_Fmask.TIF'))
-                    self.cloud_mask = 'BQA'
-                    print 'Mascara de nubes (BQA) generada en ' + str(t-time.time()) + ' segundos'
-                                       
-        except Exception as e:
-            
-            print "Unexpected error:", type(e), e
-            
-        #Insertamos el umbral para Fmask en la base de datos: Si es de calidad pondremos 'BQA'
+                    t = time.time()
+                    print 'comenzando Fmask NoTIRS'
+                    a = os.system('C:/Cloud_Mask/Fmask_3_2')
+                    a
+                    if a == 0:
+                        self.cloud_mask = 'Fmask NoTIRS'
+                        print 'Mascara de nubes (Fmask NoTIRS) generada en ' + str(t-time.time()) + ' segundos'
+                    else:
+                        print 'comenzando BQA'
+                        for i in os.listdir(self.ruta_escena):
+                            if i.endswith('BQA.TIF'):
+                                masker = landsatmasker(os.path.join(self.ruta_escena, i))
+                                mask = masker.getcloudmask(confidence.high, cirrus = True, cumulative = True)
+                                masker.savetif(mask, os.path.join(self.ruta_escena, self.escena + '_Fmask.TIF'))
+                        self.cloud_mask = 'BQA'
+                        print 'Mascara de nubes (BQA) generada en ' + str(t-time.time()) + ' segundos'
+                                           
+            except Exception as e:
+                
+                print "Unexpected error:", type(e), e
+                
+            #Insertamos el umbral para Fmask en la base de datos: Si es de calidad pondremos 'BQA'
     
     
     def fmask_legend(self):
@@ -504,6 +556,7 @@ class Landsat(object):
                     archivo = os.path.join(self.rad, i)
                     dictio = {6: lista_kl[0], 7: lista_kl[1], 8: lista_kl[2], 9: lista_kl[3],\
                     10: lista_kl[4], 11: lista_kl[5], 12: lista_kl[6], 14: lista_kl[7]}
+                    
 
                     rad = open(archivo, 'r')
                     rad.seek(0)
@@ -528,7 +581,30 @@ class Landsat(object):
                     shutil.copy(src, dst)
 
         print 'modificados los metadatos del archivo kl.rad\nProceso finalizado en ' + str(time.time()-t) + ' segundos'
+        print lista_kl
+        
+                
+        #Metemos los valores del objeto oscuro en la Base de Datos
+        conn = sqlite3.connect(r'C:\Embalses\data\Pr_embalsesDB.db')
+        cur = conn.cursor()
+        print "Opened database successfully"
+
+        try:
+                
+            cur.execute('''INSERT OR REPLACE INTO Kl (id_escena, B1, B2, B3, B4, B5, B6, B7, B9) 
+                VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )''', (self.escena, int(lista_kl[0]), int(lista_kl[1]), int(lista_kl[2]), int(lista_kl[3]), int(lista_kl[4]), \
+                    int(lista_kl[5]), int(lista_kl[6]), int(lista_kl[7]) ));
+
+        except Exception as e: 
     
+            print e
+
+        conn.commit()
+        conn.close()
+
+
+        
+
     def move_hdr(self):
 
         '''-----\n
