@@ -65,7 +65,7 @@ def untar(ruta):
     
     for i in os.listdir(ruta):
 
-        if i.endswith('tar.gz') or i.endswith('.tar'):
+        if i.endswith('tar.gz') or i.endswith('tar.bz'):
             
             try:
 
