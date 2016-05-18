@@ -176,7 +176,7 @@ class Product(object):
                 
             for n, e in self.vals.items():
                 for val in src.sample([(e[0], e[1])]):
-                    if str(float(val)) != '-3.40282346639e+38' or str(float(val)) != '-999.0':
+                    if str(float(val)) != '-3.40282346639e+38':
                         #insertamos los valores en la tabla Puntos-Indices. Hay que coger el id del indice y el id de Puntos-Escenas. Consulta!!?!?!?!?
                         cur.execute('''INSERT OR REPLACE INTO Puntos_Indices (id_indices, id_puntos, id_escenas, valor) 
                     VALUES ( ?, ?, ?, ?)''', (indice, n, self.escena, float(val)));
