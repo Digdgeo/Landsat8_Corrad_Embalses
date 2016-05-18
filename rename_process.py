@@ -12,7 +12,7 @@
 #Escenas comprimidas y la salida sera directamente el resultado de ejecutar la clase Landsat() usada para la Correccion Radiometrica. 
 #Para ejecutarlo solo hay que abrir un cmd y escribir 'python rename_process.py'
 
-import os, re, time, tarfile
+import os, shutil, re, time, tarfile
 from corrad_l8 import Landsat
 
 def rename(path):
@@ -87,6 +87,70 @@ def untar(ruta):
                 print e, escena
                 continue
 
-#path = os.getcwd() Se podria hacer en el directorio que se quisiera
+
+def getParameters(ruta):
+
+    for i in os.listdir(ruta):
+
+        if i.startswith('S2A'):
+            
+            if 'ori' in ruta:
+
+                src = os.path.join(ruta, i)
+                escena = os.path.split(src)[1]
+                ini = src.find('__') + 2
+
+                huso = escena[-2:]
+                zona = escena[-5:-3]
+                dst = src[ini:ini+8] + 'se2A_' + zona + '_' + huso
+                outname = os.path.join(ruta, dst)
+
+                try:
+
+                    copyDirectory(src, outname)
+
+                except Exception as e:
+                    print 'Error', e
+                    continue
+            
+            elif 'rad' in ruta:
+                
+                src = os.path.join(ruta, i)
+                escena = os.path.split(src)[1]
+                ini = src.find('__') + 2
+
+                huso = escena[-6:-4]
+                zona = escena[-9:-7]
+                dst = src[ini:ini+8] + 'se2A_' + zona + '_' + huso
+                outname = os.path.join(ruta, dst)
+
+                try:
+
+                    copyDirectory(src, outname)
+
+                except Exception as e:
+
+                    print 'Error', e
+                    continue
+                
+            else:
+                
+                print 'Esto no es ni ori ni rad. Seguro que es correcto?'
+            
+def copyDirectory(src, dest):
+    
+    try:
+        shutil.move(src, dest)
+        print src, 'remobrada a', dest
+    except shutil.Error as e:
+        print('Directory not copied. Error: %s' % e)
+    
+    except OSError as e:
+        print('Directory not copied. Error: %s' % e)
+
+
 if __name__ == "__main__":
+    
     untar(r'C:\Embalses\ori')
+    getParameters(r'C:\Embalses\ori')
+    getParameters(r'C:\Embalses\rad')

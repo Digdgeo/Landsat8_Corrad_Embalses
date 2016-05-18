@@ -111,7 +111,7 @@ class Landsat(object):
         #
         #
         #Creamos la base de datos y la primera tabla Escenas
-        conn = sqlite3.connect(r'C:\Embalses\data\Pr_embalsesDB.db')
+        conn = sqlite3.connect(r'C:\Embalses\data\Embalses.db')
         cur = conn.cursor()
         print "Opened database successfully"
 
@@ -141,34 +141,28 @@ class Landsat(object):
 
         print "Table Kl created successfully"
 
-        conn.execute('''CREATE TABLE IF NOT EXISTS 'Puntos-Escenas' (
-                        'id'    INTEGER PRIMARY KEY AUTOINCREMENT,
-                        'id_escenas'    TEXT,
-                        'id_puntos' INTEGER
-                        )''');
-
-        print "Table Puntos-Escena created successfully"
-
         conn.execute('''CREATE TABLE IF NOT EXISTS 'Puntos' (
-                        'id'    INTEGER PRIMARY KEY AUTOINCREMENT,
+                        'id'    INTEGER PRIMARY KEY,
                         'Coordenada_X'    DECIMAL,
-                        'Coordenada_Y' DECIMAL
+                        'Coordenada_Y' DECIMAL,
                         'Nombre' TEXT
                         )''');
 
         print "Table Puntos created successfully"
 
         conn.execute('''CREATE TABLE  IF NOT EXISTS  'Indices' (
-                        'id'    INTEGER PRIMARY KEY AUTOINCREMENT,
-                        'Indice'    TEXT
+                        'id'    TEXT PRIMARY KEY,
+                        'Indice'    TEXT UNIQUE
                         )''');
 
         print "Table Indices created successfully"
 
-        conn.execute('''CREATE TABLE  IF NOT EXISTS 'Puntos-Indices' (
-                        'id_indices'    INTEGER PRIMARY KEY AUTOINCREMENT,
-                        'id_puntos_escenas'    INTEGER,
-                        'Valor' INTEGER
+        conn.execute('''CREATE TABLE  IF NOT EXISTS 'Puntos_Indices' (
+                        'id_indices'    TEXT,
+                        'id_puntos'    INTEGER,
+                        'id_escenas' TEXT,
+                        'Valor' REAL,
+                        PRIMARY KEY ('id_indices', 'id_puntos', 'id_escenas')
                         )''');
 
         print "Table Puntos-Indices created successfully"
@@ -585,7 +579,7 @@ class Landsat(object):
         
                 
         #Metemos los valores del objeto oscuro en la Base de Datos
-        conn = sqlite3.connect(r'C:\Embalses\data\Pr_embalsesDB.db')
+        conn = sqlite3.connect(r'C:\Embalses\data\Embalses.db')
         cur = conn.cursor()
         print "Opened database successfully"
 
@@ -902,7 +896,7 @@ class Landsat(object):
         
         '''-----\n
         Este metodo soluciona el problema de los pixeles con alta y baja reflectividad, llevando los bajos a valor 0 
-        y los altos a 100. La salida sigue siendo en float32 (reales entre 0.0 y 100.0) con el nodata en 255'''
+        y los altos a 100. La salida sigue siendo en float32 (reales entre 0.0 y 100.0)'''
         
         path_escena_rad = os.path.join(self.rad, self.escena)
         for i in os.listdir(path_escena_rad):
