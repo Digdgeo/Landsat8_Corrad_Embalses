@@ -118,8 +118,8 @@ class Landsat(object):
         conn.execute('''CREATE TABLE IF NOT EXISTS 'Escenas' (
                         'Escena'    TEXT NOT NULL PRIMARY KEY UNIQUE,
                         'Sat' TEXT,
-                        'Path'  INTEGER,
-                        'Row'   INTEGER,
+                        'Path'  TEXT,
+                        'Row'   TEXT,
                         'Fecha_Escena'  DATE,
                         'Fecha_Procesado'   DATETIME
                         )''');
@@ -145,7 +145,8 @@ class Landsat(object):
                         'id'    INTEGER PRIMARY KEY,
                         'Coordenada_X'    DECIMAL,
                         'Coordenada_Y' DECIMAL,
-                        'Nombre' TEXT
+                        'Nombre' TEXT,
+                        'Huso' TEXT
                         )''');
 
         print "Table Puntos created successfully"
@@ -170,7 +171,7 @@ class Landsat(object):
         try:
 
             cur.execute('''INSERT OR REPLACE INTO Escenas (Escena, Sat, Path, Row, Fecha_Escena, Fecha_Procesado) 
-                VALUES ( ?, ?, ?, ?, ?, ?)''', (self.escena, self.sat, int(self.escena[-6:-3]), int(self.escena[-2:]), \
+                VALUES ( ?, ?, ?, ?, ?, ?)''', (self.escena, self.sat, str(self.escena[-6:-3]), str(self.escena[-2:]), \
                     date(int(self.escena[:4]), int(self.escena[4:6]), int(self.escena[6:8])), datetime.now() ));
 
  
