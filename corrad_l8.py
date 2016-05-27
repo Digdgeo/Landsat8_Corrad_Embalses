@@ -168,6 +168,27 @@ class Landsat(object):
 
         print "Table Puntos-Indices created successfully"
 
+        conn.execute('''CREATE TABLE  IF NOT EXISTS 'Reflectividades' (
+                        'id_puntos' INTEGER,
+                        id_escenas TEXT,
+                        'B1'    REAL,
+                        'B2'    REAL,
+                        'B3'    REAL,
+                        'B4'    REAL,
+                        'B5'    REAL,
+                        'B6'    REAL,
+                        'B7'    REAL,
+                        'B8'   REAL,
+                        'B8A'   REAL,
+                        'B9'    REAL,
+                        'B10'    REAL,
+                        'B11'   REAL,
+                        'B12'    REAL,
+                        PRIMARY KEY ('id_puntos', 'id_escenas') 
+                        )''');
+
+        print "Table Reflectividades created successfully"
+
         try:
 
             cur.execute('''INSERT OR REPLACE INTO Escenas (Escena, Sat, Path, Row, Fecha_Escena, Fecha_Procesado) 

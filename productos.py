@@ -30,6 +30,7 @@ class Product(object):
         self.temp = os.path.join(self.data, 'temp')
         self.productos = os.path.join(self.raiz, 'productos')
         self.vals = {}
+        self.d = {}
         self.pro_esc = os.path.join(self.productos, self.escena)
         if not os.path.exists(self.pro_esc):
             os.makedirs(self.pro_esc)
@@ -42,60 +43,62 @@ class Product(object):
 
         if self.sat == 'L8':
 
-            for i in os.listdir(self.ruta_escena):
+            for i in os.listdir(self.rad):
                 if re.search('img$', i):
                     
                     banda = i[-6:-4]
                                         
                     if banda == 'b1':
-                        self.b1 = os.path.join(self.ruta_escena, i)
+                        self.b1 = os.path.join(self.rad, i)
                     elif banda == 'b2':
-                        self.b2 = os.path.join(self.ruta_escena, i)
+                        self.b2 = os.path.join(self.rad, i)
                     elif banda == 'b3':
-                        self.b3 = os.path.join(self.ruta_escena, i)
+                        self.b3 = os.path.join(self.rad, i)
                     elif banda == 'b4':
-                        self.b4 = os.path.join(self.ruta_escena, i)
+                        self.b4 = os.path.join(self.rad, i)
                     elif banda == 'b5':
-                        self.b5 = os.path.join(self.ruta_escena, i)
+                        self.b5 = os.path.join(self.rad, i)
                     elif banda == 'b6':
-                        self.b6 = os.path.join(self.ruta_escena, i)
+                        self.b6 = os.path.join(self.rad, i)
                     elif banda == 'b7':
-                        self.b7 = os.path.join(self.ruta_escena, i)
+                        self.b7 = os.path.join(self.rad, i)
                     elif banda == 'b9':
-                        self.b9 = os.path.join(self.ruta_escena, i)
+                        self.b9 = os.path.join(self.rad, i)
         
         elif self.sat == 'S2A':
 
 
-            for i in os.listdir(self.ruta_escena):
+            for i in os.listdir(self.rad):
                 if re.search('tif$', i):
                     
                     banda = i[-7:-4]
                    
                     if banda == 'B01':
-                        self.b1 = os.path.join(self.ruta_escena, i)
+                        self.b1 = os.path.join(self.rad, i)
                     elif banda == 'B02':
-                        self.b2 = os.path.join(self.ruta_escena, i)
+                        self.b2 = os.path.join(self.rad, i)
                     elif banda == 'B03':
-                        self.b3 = os.path.join(self.ruta_escena, i)
+                        self.b3 = os.path.join(self.rad, i)
                     elif banda == 'B04':
-                        self.b4 = os.path.join(self.ruta_escena, i)
+                        self.b4 = os.path.join(self.rad, i)
                     elif banda == 'B05':
-                        self.b5 = os.path.join(self.ruta_escena, i)
+                        self.b5 = os.path.join(self.rad, i)
                     elif banda == 'B06':
-                        self.b6 = os.path.join(self.ruta_escena, i)
+                        self.b6 = os.path.join(self.rad, i)
                     elif banda == 'B07':
-                        self.b7 = os.path.join(self.ruta_escena, i)
+                        self.b7 = os.path.join(self.rad, i)
                     elif banda == 'B08':
-                        self.b8 = os.path.join(self.ruta_escena, i)
+                        self.b8 = os.path.join(self.rad, i)
                     elif banda == 'B8A':
-                        self.b8a = os.path.join(self.ruta_escena, i)
+                        self.b8a = os.path.join(self.rad, i)
                     elif banda == 'B09':
-                        self.b9 = os.path.join(self.ruta_escena, i)
+                        self.b9 = os.path.join(self.rad, i)
                     elif banda == 'B10':
-                        self.b10 = os.path.join(self.ruta_escena, i)
+                        self.b10 = os.path.join(self.rad, i)
                     elif banda == 'B11':
-                        self.b11 = os.path.join(self.ruta_escena, i)
+                        self.b11 = os.path.join(self.rad, i)
+                    elif banda == 'B12':
+                        self.b12 = os.path.join(self.rad, i)
 
     
         #BASE DE DATOS SQLITE!
@@ -109,7 +112,7 @@ class Product(object):
         print "Opened database successfully"       
 
         #Vamos a abrir el shape con fiona para obtener los datos
-        vals = {}
+        #vals = {}
         with fiona.open(self.shape, 'r') as shp:
             for i in shp.values():
                 
@@ -120,17 +123,15 @@ class Product(object):
                 huso = int(i['properties']['Huso'])
 
                 self.vals[id] = [x, y, emb, huso]
-                #print self.vals
-
+               
                 cur.execute('''INSERT OR IGNORE INTO Puntos (id, Coordenada_X, Coordenada_Y, Nombre, Huso) 
                     VALUES ( ?, ?, ?, ?, ?)''', (id, x, y, emb, huso));
                 #vals[id] = [x, y, emb]
                 conn.commit()
-
+        for k, v in self.vals.items():
+            print k, v
         print 'puntos insertados en la Base de datos'
 
-        for i in self.vals.items():
-            print i        
 
         if self.sat == 'S2A':
 
@@ -153,12 +154,55 @@ class Product(object):
                 cur.execute('''INSERT OR REPLACE INTO Escenas (Escena, Sat, Path, Row, Fecha_Escena, Fecha_Procesado) 
                     VALUES ( ?, ?, ?, ?, ?, ?)''', (self.escena, self.sat, str(self.escena[-5:-3]), str(self.escena[-2:]), \
                         date(int(self.escena[:4]), int(self.escena[4:6]), int(self.escena[6:8])), datetime.now() ));
+                conn.commit()
 
             except Exception as e: 
                 
                 print e
 
         conn.close()
+
+        self.write_rs()
+    
+    def getrs(self, raster, x, y, id):
+    
+        conn = sqlite3.connect(r'C:\Embalses\data\Embalses.db')
+        cur = conn.cursor()
+        #print "Opened database successfully"
+        self.d['id_puntos'] = id
+        self.d['id_escenas'] = self.escena
+        with rasterio.open(raster) as src:
+            if self.sat == 'L8':
+                banda = raster[-6:-4].upper()
+            elif self.sat == 'S2A':
+                banda = raster[-7:-4].upper()
+                if banda[1] == '0':
+                    banda = banda.replace('0', '')
+            for val in src.sample([(x, y)]):
+                    #print val, type(val)
+                    if str(float(val)) != '-3.40282346639e+38':
+                        if not val  in [0.0, -9999, -999.0, '0.0', '-9999', '-999.0']:
+                            print raster, float(val)
+                            self.d[banda] = round(float(val), 4)
+                            columns = ', '.join(self.d.keys())
+                            placeholders = ', '.join('?' * len(self.d))
+                            sql = 'INSERT OR REPLACE INTO Reflectividades ({}) VALUES ({})'.format(columns, placeholders)
+                            cur.execute(sql, self.d.values())
+
+                            conn.commit()
+        conn.close()
+                        
+    
+    def write_rs(self):
+
+        
+        if self.sat == 'L8':
+            bandas = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7, self.b9]
+        elif self.sat == 'S2A':
+            bandas = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7, self.b8, self.b8a, self.b9, self.b10, self.b11, self.b12]
+        for k, v in self.vals.items():
+            for b in bandas:
+                self.getrs(b, v[0], v[1], k)
 
         
 
