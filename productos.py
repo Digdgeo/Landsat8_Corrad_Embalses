@@ -36,6 +36,8 @@ class Product(object):
             os.makedirs(self.pro_esc)
         if 'l8oli' in self.ruta_escena:
             self.sat = 'L8'
+        elif 'l7etm' in self.escena:
+            self.sat = 'L7'
         elif 'se2A' in self.ruta_escena:
             self.sat =  'S2A'
         else:
@@ -64,6 +66,26 @@ class Product(object):
                         self.b7 = os.path.join(self.rad, i)
                     elif banda == 'b9':
                         self.b9 = os.path.join(self.rad, i)
+
+        elif self.sat == 'L7':
+
+            for i in os.listdir(self.rad):
+                if re.search('img$', i):
+                    
+                    banda = i[-6:-4]
+                                        
+                    if banda == 'b1':
+                        self.b1 = os.path.join(self.rad, i)
+                    elif banda == 'b2':
+                        self.b2 = os.path.join(self.rad, i)
+                    elif banda == 'b3':
+                        self.b3 = os.path.join(self.rad, i)
+                    elif banda == 'b4':
+                        self.b4 = os.path.join(self.rad, i)
+                    elif banda == 'b5':
+                        self.b5 = os.path.join(self.rad, i)
+                    elif banda == 'b7':
+                        self.b7 = os.path.join(self.rad, i)
         
         elif self.sat == 'S2A':
 
@@ -172,7 +194,7 @@ class Product(object):
         self.d['id_puntos'] = id
         self.d['id_escenas'] = self.escena
         with rasterio.open(raster) as src:
-            if self.sat == 'L8':
+            if self.sat == 'L8' or self.sat == 'L7':
                 banda = raster[-6:-4].upper()
             elif self.sat == 'S2A':
                 banda = raster[-7:-4].upper()
@@ -198,6 +220,8 @@ class Product(object):
         
         if self.sat == 'L8':
             bandas = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7, self.b9]
+        elif self.sat == 'L7':
+            bandas = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b7]
         elif self.sat == 'S2A':
             bandas = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7, self.b8, self.b8a, self.b9, self.b10, self.b11, self.b12]
         for k, v in self.vals.items():
@@ -348,7 +372,7 @@ class Turbidez(Product):
         desc = 'Modelo de turbidez Kabara et al 2008'
         #Medida = 'FTU'
         #Enlace = 'http://www.academia.edu/5395969/Monitoring_water_quality_in_the_coastal_area_of_Tripoli_Lebanon_using_high-resolution_satellite_data'
-        outfile = os.path.join(self.pro_esc, 'ftu_kabara.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_ftu_kabara.img')
         print outfile
                             
         with rasterio.open(self.b2) as blue:
@@ -356,7 +380,7 @@ class Turbidez(Product):
         with rasterio.open(self.b3) as green:
             GREEN = green.read()
             
-        ftu = 10.6823 - (5.6838 * np.log(BLUE)) + (3.5418 * np.log(GREEN))
+        ftu = np.power(2.718, 10.6823 - (5.6838 * np.log(BLUE)) + (3.5418 * np.log(GREEN)))
         
         profile = blue.meta
         profile.update(dtype=rasterio.float32)
@@ -373,7 +397,7 @@ class Turbidez(Product):
         desc = 'Modelo de turbidez Hereher et al 2010'
         #Medida = 'NTU'
         #Enlace = 'https://www.researchgate.net/publication/279251427_The_application_of_remote_sensing_data_to_diagnose_soil_degradation_in_the_Dakhla_depression_-_Western_Desert_Egypt'
-        outfile = os.path.join(self.pro_esc, 'ntu_hereher.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_hereher.img')
         print outfile
                             
         with rasterio.open(self.b3) as green:
@@ -405,10 +429,8 @@ class Turbidez(Product):
         desc = 'Modelo de turbidez Bustamante 2005'
         #Medida = 'NTU'
         #Enlace = 'http://www.ebd.csic.es/bustamante/publicaciones/Bustamante_et_al_%282005%29_XI_Congreso_Teledetecci%F3n_455-458.pdf'
-        outfile = os.path.join(self.pro_esc, 'ntu_bus2005.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_bus2005.img')
         print outfile
-        
-       
                                 
         with rasterio.open(self.b3) as green:
             GREEN = green.read()
@@ -424,15 +446,13 @@ class Turbidez(Product):
                 SWIR2 = swir2.read()
 
             
-        ntu = np.power(math.e, (2.3 - (2.55E-4 * GREEN) + (6E-4 * RED) - (2.31E-4 * SWIR2)) - 0.01)
+        ntu = np.power(math.e, (2.3 - (2.55E-4 * GREEN) + (6E-4 * RED) - (2.31E-4 * SWIR2))) - 0.01
         
         profile = green.meta
         profile.update(dtype=rasterio.float32)
 
         with rasterio.open(outfile, 'w', **profile) as dst:
             dst.write(ntu.astype(rasterio.float32)) 
-
-        
 
         self.get_val_indice(outfile, indice, desc)
         self.recorte(self.ori, outfile)
@@ -443,13 +463,71 @@ class Turbidez(Product):
         desc = 'Modelo de turbidez Bustamante 2009'
         #Medida = 'NTU'
         #Enlace = 'http://www.sciencedirect.com/science/article/pii/S030147970800042X#FCANote'
-        outfile = os.path.join(self.pro_esc, 'ntu_bus2009.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_bus2009.img')
+        print outfile
+        
+        if self.sat != 'L7':                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+        else:
+            with rasterio.open(self.b3) as red:
+                RED = red.read()
+            
+        ntu = np.power(2.718, 1.195 + 14.45*RED) - 0.01
+        
+        profile = red.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(ntu.astype(rasterio.float32)) 
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def ntu_bus2009_1(self):
+            
+        indice = 'ntu_B2009_1'
+        desc = 'Modelo de turbidez Bustamante 2009'
+        #Medida = 'NTU'
+        #Enlace = 'http://www.sciencedirect.com/science/article/pii/S030147970800042X#FCANote'
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_bus2009_1.img')
         print outfile
                             
-        with rasterio.open(self.b4) as red:
-            RED = red.read()
+        if self.sat != 'L7':                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+        else:
+            with rasterio.open(self.b3) as red:
+                RED = red.read()
             
-        ntu = 1.195 + 14.45*RED
+        ntu = np.power(np.power(2.718, 1.195 + 14.45*RED) - 0.01, -0.7) * 15.87
+        
+        profile = red.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(ntu.astype(rasterio.float32)) 
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def ntu_bus2009_2(self):
+            
+        indice = 'ntu_B2009_2'
+        desc = 'Modelo de turbidez Bustamante 2009'
+        #Medida = 'NTU'
+        #Enlace = 'http://www.sciencedirect.com/science/article/pii/S030147970800042X#FCANote'
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_bus2009_2.img')
+        print outfile
+                            
+        if self.sat != 'L7':                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+        else:
+            with rasterio.open(self.b3) as red:
+                RED = red.read()
+            
+        ntu = np.power(np.power(2.718, 1.195 + 14.45*RED) - 0.01, -0.7) * 4.38
         
         profile = red.meta
         profile.update(dtype=rasterio.float32)
@@ -460,13 +538,68 @@ class Turbidez(Product):
         self.get_val_indice(outfile, indice, desc)
         self.recorte(self.ori, outfile)
                     
+    def ntu_bus2009_3(self):
+            
+        indice = 'ntu_B2009_3'
+        desc = 'Modelo de turbidez Bustamante 2009'
+        #Medida = 'NTU'
+        #Enlace = 'http://www.sciencedirect.com/science/article/pii/S030147970800042X#FCANote'
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_bus2009_3.img')
+        print outfile
+                            
+        if self.sat != 'L7':                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+        else:
+            with rasterio.open(self.b3) as red:
+                RED = red.read()
+            
+        ntu = np.power(np.power(2.718, 1.195 + 14.45*RED) - 0.01, -0.7) * 11.37
+        
+        profile = red.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(ntu.astype(rasterio.float32)) 
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def ntu_bus2009_4(self):
+            
+        indice = 'ntu_B2009_4'
+        desc = 'Modelo de turbidez Bustamante 2009'
+        #Medida = 'NTU'
+        #Enlace = 'http://www.sciencedirect.com/science/article/pii/S030147970800042X#FCANote'
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_bus2009_4.img')
+        print outfile
+                            
+        if self.sat != 'L7':                
+            with rasterio.open(self.b4) as red:
+                RED = red.read()
+        else:
+            with rasterio.open(self.b3) as red:
+                RED = red.read()
+            
+        ntu = np.power(np.power(2.718, 1.195 + 14.45*RED) - 0.01, -0.7) * 18.05
+        
+        profile = red.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(ntu.astype(rasterio.float32)) 
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+
     def ntu_chen(self):
         
         indice = 'ntu_Chen'
         desc = 'Mpdelo de turbidez de Chen et al 2009'
         #Medida = 'NTU' 
         #Enlace = 'http://www.sciencedirect.com/science/article/pii/S0034425714003654'
-        outfile = os.path.join(self.pro_esc, 'ntu_chen.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_ntu_chen.img')
         print outfile
                         
         with rasterio.open(self.b3) as green:
@@ -490,7 +623,7 @@ class Turbidez(Product):
         desc = 'Water Turbidity Index'
         #Medida = 'Indice'
         #Enlace = 'http://naldc.nal.usda.gov/download/37837/PDF'
-        outfile = os.path.join(self.pro_esc, 'wti.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_wti.img')
         print outfile
                         
         with rasterio.open(self.b4) as red:
@@ -766,10 +899,7 @@ class Clorofila(Product):
 
         ######FORMULA Mayo et al 1995########
 
-        div = np.true_divide((B2-B4), B3)
-        exp = -0.98
-        chl = 0.164*np.power(div, exp)
-        #0.164*((B2-B4)/B3)**-0.98
+        chl = 0.164 * np.power (((B2 - B4) / B3), (-0.98))
 
         profile = banda2.meta
         profile.update(dtype=rasterio.float32)
@@ -779,6 +909,52 @@ class Clorofila(Product):
 
         self.get_val_indice(outfile, indice, desc)
         self.recorte(self.ori, outfile)
+
+    def P_Mayo11(self):
+
+        indice = 'P_Mayo11'
+        desc = 'Mayo et al 2015. ProtocoloF'
+        #Medida = mg/l
+        #Enlace = 'ProtocoloF.pdf Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_PMayo11.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+        if self.sat != 'L7':
+
+            with rasterio.open(self.b4) as banda4:  
+                B4 = banda4.read()
+            
+            with rasterio.open(self.b2) as banda2:
+                B2 = banda2.read()
+
+            with rasterio.open(self.b3) as banda3:
+                B3 = banda3.read()
+
+        else:
+            #SOLO CAMBIAMOS LA BANDA QUE ABRE, DEJAMOS LA REFERENCIA AL ARRAY PARA QUE LA FORMULA SEA LA MISMA
+            with rasterio.open(self.b3) as banda4:  
+                B4 = banda4.read()
+            
+            with rasterio.open(self.b1) as banda2:
+                B2 = banda2.read()
+
+            with rasterio.open(self.b2) as banda3:
+                B3 = banda3.read()
+
+        ######FORMULA Mayo et al 1995########
+        #CON LANDSAT 7 REALMENTE ESTAMOS HACIENDO chl = 11.0 * 0.164 * np.power (((B1 - B3) / B2), (-0.98))
+        chl = 11.0 * 0.164 * np.power (((B2 - B4) / B3), (-0.98))
+
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
 
     def P_Gilardino(self):
 
@@ -1034,6 +1210,7 @@ class Clorofila(Product):
             dst.write(GBlue.astype(rasterio.float32))
 
         self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
 
 
     def Gitelson_Red(self):
@@ -1060,26 +1237,385 @@ class Clorofila(Product):
             dst.write(GRed.astype(rasterio.float32))
 
         self.get_val_indice(outfile, indice, desc)
-                            
+        self.recorte(self.ori, outfile)
+               
+    def Xiong(self):
 
-class ficocianina(Product):
-
-    def Gitelson(self):
-
-        indice = 'Gitelson'
-        desc = 'Ocean Colour Scene NASA Algoritm OC3 for MODIS (Landsat 8) bands'
-        Enlace = 'An Introduction to Ocean Remote Sensing, pag 179'
-        outfile = os.path.join(self.pro_esc, self.escena + '_Gitelson.img')
+        indice = 'Xiong'
+        desc = 'Xiong et al 2011'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Xiang.img')
         print outfile
         
         #Son las mismas bandas para Sentinel 2 que para Landsat 8
 
+        with rasterio.open(self.b5) as banda5:  
+            B5 = banda5.read()
+        
+        with rasterio.open(self.b2) as banda2:
+            B2 = banda2.read()
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b4) as banda4:
+            B4 = banda4.read()
+
+        ######FORMULA Xiong et al 2011########
+
+        chl = 44.2 - (1.17 * B2) - (0.88 * B3) + (1.49 * B4) + (4.08 * B5)
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Hereder(self):
+
+        indice = 'Hereder'
+        desc = 'Hereder et al 2010'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Hereder.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b5) as banda5:  
+            B5 = banda5.read()
+        
+        with rasterio.open(self.b2) as banda2:
+            B2 = banda2.read()
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b4) as banda4:
+            B4 = banda4.read()
+
+        ######FORMULA Hereder et al 2010########
+
+        chl = -8.145 - (68.036 * B2) - (25.986 * B4 / B5) + (44.195 * B5 / B3)
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Griffin(self):
+
+        indice = 'Griffin'
+        desc = 'Griffin et al 2010'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Griffin.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b2) as banda2:  
+            B2 = banda2.read()
+        
         with rasterio.open(self.b4) as banda4:  
             B4 = banda4.read()
-                
+        
+        ######FORMULA Griffin et al 2010########
+
+        chl = 37.0806375 - 94.76752 * B4 - 29.944702 * B2 / B4
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Duan(self):
+
+        indice = 'Duan'
+        desc = 'Duan et al 2007'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Duan.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b5) as banda5:  
+            B5 = banda5.read()
+        
+        with rasterio.open(self.b4) as banda4:  
+            B4 = banda4.read()
+        
+        ######FORMULA Duan et al 2007########
+
+        chl = 116.98 * B5 / B4 - 29.709 
+        
+        profile = banda4.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Lindell(self):
+
+        indice = 'Lindell'
+        desc = 'Lindell et al 1999'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Lindell.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b2) as banda2:
+            B2 = banda2.read()
+
+        with rasterio.open(self.b5) as banda5:
+            B5 = banda5.read()
+        
+        ######FORMULA Lindell et al 1999########
+
+        chl = B5 / (B2 + B3 + B5)
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Dvivedi(self):
+
+        indice = 'Dvivedi'
+        desc = 'Dvivedi et al 1987'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Dvivedi.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b2) as banda2:
+            B2 = banda2.read()
+        
+        ######FORMULA Dvivedi et al 1987########
+
+        chl = np.power ( 2.718, np.log (B2 / B3) )
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+   
+
+    def Kabbara1(self):
+
+        indice = 'Kabbara1'
+        desc = 'Kabbara et al 2008'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Kabbara1.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b2) as banda2:
+            B2 = banda2.read()
+        
+        ######FORMULA Kabbara1 et al 2008########
+
+        chl = np.power ( 2.718, ( 1.67 - 3.94 * np.log (B2) + 3.78 * np.log (B3)))
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+
+    def Kabbara2(self):
+
+        indice = 'Kabbara2'
+        desc = 'Kabbara et al 2008'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Kabbara2.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b2) as banda2:
+            B2 = banda2.read()
+        
+        ######FORMULA Kabbara2 et al 2008########
+
+        chl = np.power ( 2.718, ( 6.92274 - 5.75814 * ( np.log (B2) / np.log (B3))))
+        
+        profile = banda2.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+
+    def Schneider(self):
+
+        indice = 'Schneider'
+        desc = 'Schneider et al 1996'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Schneider.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b4) as banda4:
+            B4 = banda4.read()
+        
+        ######FORMULA Schneider et al 1996########
+
+        chl = np.power ( 2.718, np.log (B4 / B3) )
+        
+        profile = banda3.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Hellweger(self):
+
+        indice = 'Hellweger'
+        desc = 'Hellweger et al 2004'
+        #Medida = mg/l
+        #Enlace = 'Protocolo.pdf p8 Dropbox'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Hellweger.img')
+        print outfile
+        
+        #Son las mismas bandas para Sentinel 2 que para Landsat 8
+
+        with rasterio.open(self.b3) as banda3:  
+            B3 = banda3.read()
+        
+        with rasterio.open(self.b4) as banda4:
+            B4 = banda4.read()
+        
+        ######FORMULA Dvivedi et al 1987########
+
+        chl = np.power ( 2.718, ( 0.48 + 6.37 * np.log (B3 / B4) ))
+        
+        profile = banda3.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(chl.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+
+class Ficocianina(Product):
+
+    def Vicent(self):
+
+        indice = 'Vicent'
+        desc = 'estudio realizado en el lago Erie 2004 (Estados Unidos)'
+        Enlace = 'protocolo pdf'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Vicent.img')
+        print outfile
+        
+        #No son las mismas bandas para Sentinel 2 que para Landsat 8: 2,4,6,7
+
+        with rasterio.open(self.b2) as banda2:  
+            B2 = banda2.read()
+        with rasterio.open(self.b4) as banda4:  
+            B4 = banda4.read()
+        with rasterio.open(self.b6) as banda6:  
+            B6 = banda6.read()
+        with rasterio.open(self.b7) as banda7:  
+            B7 = banda7.read()
+
         ######FORMULA########
 
-        GRed = -2.85 + 0.145 * B4
+        GRed = 0.760499 - 0.0539 * B2 + 0.176 * B4 - 0.216 * B6 + 0.117 * B7
+        
+        profile = banda4.meta
+        profile.update(dtype=rasterio.float32)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(GRed.astype(rasterio.float32))
+
+        self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
+
+    def Vicent2(self):
+
+        indice = 'Vicent2'
+        desc = 'estudio realizado en el lago Erie 2004 (Estados Unidos)'
+        Enlace = 'protocolo pdf'
+        outfile = os.path.join(self.pro_esc, self.escena + '_Vicent2.img')
+        print outfile
+        
+        #No son las mismas bandas para Sentinel 2 que para Landsat 8: 2,4,5,6,7
+
+        with rasterio.open(self.b2) as banda2:  
+            B2 = banda2.read()
+        with rasterio.open(self.b4) as banda4:  
+            B4 = banda4.read()
+        with rasterio.open(self.b5) as banda5:  
+            B5 = banda5.read()
+        with rasterio.open(self.b6) as banda6:  
+            B6 = banda6.read()
+        with rasterio.open(self.b7) as banda7:  
+            B7 = banda7.read()
+
+        ######FORMULA########
+
+        GRed = 47.7 - (B4 / B2 ) + 29.7 * (B5 / B2) - 118 * (B5 / B4) - 6.81 * (B6 / B4) + 41.9 * (B7 /B4) - 14.7 * (B7 / B5)
 
         profile = banda4.meta
         profile.update(dtype=rasterio.float32)
@@ -1088,6 +1624,7 @@ class ficocianina(Product):
             dst.write(GRed.astype(rasterio.float32))
 
         self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
 
 
     def Bennett_Borogard(self):
@@ -1114,6 +1651,7 @@ class ficocianina(Product):
             dst.write(GRed.astype(rasterio.float32))
 
         self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
 
 
     def CdomAbs(self):
@@ -1144,11 +1682,10 @@ class ficocianina(Product):
             dst.write(CDom420.astype(rasterio.float32))
 
         self.get_val_indice(outfile, indice, desc)
-
+        self.recorte(self.ori, outfile)
 
 
     def Dsung(self):
-
 
         indice = 'Dsung'
         desc = 'Estimating phycocyanin pigment concentration in productive inland waters using Landsat measurements: A case study in Lake Dianchi'
@@ -1190,6 +1727,7 @@ class ficocianina(Product):
             dst.write(PC.astype(rasterio.float32))
 
         self.get_val_indice(outfile, indice, desc)
+        self.recorte(self.ori, outfile)
 
 
 class Temperatura(Product):
@@ -1294,6 +1832,88 @@ class Temperatura(Product):
             with rasterio.open(outlst, 'w', **profile) as dst:
                 dst.write(lst.astype(rasterio.float32)) 
 
+
+        elif self.sat == 'L7':
+
+            for i in os.listdir(self.ruta_escena):
+
+                #Abrimos el MTL para tomar los valores de las constantes
+                if i.endswith('MTL.txt'):
+                    mtl = os.path.join(self.ruta_escena,i)
+                    arc = open(mtl,'r')
+                    for i in arc:
+                        #if 'K1_CONSTANT_BAND_6_VCID_1' in i:
+                            #k1_vcid1 = 666.09
+                        #elif 'K2_CONSTANT_BAND_6_VCID_1' in i:
+                            #k2_vcid1 = 1282.71
+                        if 'RADIANCE_MULT_BAND_6_VCID_1' in i:
+                            mult_b61 = float(i.split('=')[1])  
+                        elif 'RADIANCE_ADD_BAND_6_VCID_1' in i:
+                            add_b61 = float(i.split('=')[1])
+                            
+                            
+                elif re.search('B6_VCID_1.TIF$', i):
+                    
+                    b61 = os.path.join(self.ruta_escena, i)
+
+            #Calculamos la Reflectancia en el techo de la atmosfera para la banda 10
+            with rasterio.open(b61) as ter1:
+                TER1 = ter1.read()
+
+            toa_b61 = ((mult_b61 * TER1) + add_b61) -0.29
+
+            #Ahora vamos a calcular la temperatura en el techo de la atmosfera (temperatura de brillo) en Celsius
+            BT = (np.true_divide(1282.71, (np.log(np.true_divide(666.09, toa_b61)+1)))-273.15)
+
+            
+            profile = ter1.meta
+            profile.update(dtype=rasterio.float32)
+
+            #with rasterio.open(outfile, 'w', **profile) as dst:
+                #dst.write(BT.astype(rasterio.float32)) 
+
+            #Ahora vamos a calcular la emisividad de la superficie, para ello primero debemos de calcular el NDVI
+            #Vamos a calcularlo de la escena normalizada
+            for i in os.listdir(self.rad):
+                if i.endswith('b3.img'):
+                    b3 = os.path.join(self.rad, i)
+                    print b3
+                elif i.endswith('b4.img'):
+                    b4 = os.path.join(self.rad, i)
+                    print b4
+
+            with rasterio.open(b3) as red:
+                RED = red.read()
+                
+            with rasterio.open(b4) as nir:
+                NIR = nir.read()
+            
+            ndvi = np.true_divide((NIR-RED), (NIR+RED))
+            
+
+            #with rasterio.open(outndvi, 'w', **profile) as dst:
+                #dst.write(ndvi.astype(rasterio.float32)) 
+
+            #Ahora calculamos la proporcion de vegetacion para calcular la emisividad de la superficie
+            #Como solo nos interesa el agua seria mejor dejar un valor fijo de 0.991!!!!!!!!!!!!!!!!!!!!!!!!!!
+            pv = np.power(np.true_divide(ndvi-np.nanmin(ndvi), np.nanmax(ndvi)-ndvi), 2)
+            e = 0.004 * pv + 0.986
+
+            #with rasterio.open(outpv, 'w', **profile) as dst:
+                #dst.write(pv.astype(rasterio.float32)) 
+
+            #with rasterio.open(outemi, 'w', **profile) as dst:
+                #dst.write(e.astype(rasterio.float32)) 
+
+            #Ahora calculamos la tempreatura de superficie 
+            #lst = np.true_divide(BT, (1 + (np.true_divide((10.895 * BT), 0.014394744927536233) * np.log(e)))
+            den = 1 + (10.895 * (np.true_divide(BT,14380)) * np.log(0.991)) 
+            lst = np.true_divide(BT, den)
+
+            with rasterio.open(outlst, 'w', **profile) as dst:
+                dst.write(lst.astype(rasterio.float32)) 
+
+
         else: 
 
             print 'Solo puedo calcular la temperatura con Landsat 8'
@@ -1340,11 +1960,11 @@ class Oxigeno(Product):
 
     def wang_bdo(self):
 
-        indice = 'wang'
+        indice = 'wbdo'
         desc = 'Modelo de demanda bioquimica de o2'
         #Medida = 'mg/l '
         #Enlace = 'Protocolo2.pdf'
-        outfile = os.path.join(self.pro_esc, 'wang_bdo.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_wang_bdo.img')
         print outfile
         
                           
@@ -1355,8 +1975,7 @@ class Oxigeno(Product):
         with rasterio.open(self.b4) as red:
             RED = red.read()
         
-            
-       BOD = 1.79 - 0.789 * BLUE + 52.36 * GREEN - 3.28 * RED
+        BOD = 1.79 - 0.789 * BLUE + 52.36 * GREEN - 3.28 * RED
         
         profile = blue.meta
         profile.update(dtype=rasterio.float32)
@@ -1369,11 +1988,11 @@ class Oxigeno(Product):
 
     def wang_cdo(self):
 
-        indice = 'wang'
+        indice = 'wcdo'
         desc = 'Modelo de demanda quimica de o2'
         #Medida = 'mg/l '
         #Enlace = 'Protocolo2.pdf'
-        outfile = os.path.join(self.pro_esc, 'wang_cdo.img')
+        outfile = os.path.join(self.pro_esc, self.escena + '_wang_cdo.img')
         print outfile
         
                           
